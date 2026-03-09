@@ -1,4 +1,3 @@
-// template
 import {
   Inter_400Regular,
   Inter_500Medium,
@@ -15,13 +14,21 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ headerBackTitle: "Back" }}>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="treinadora/login" />
+      <Stack.Screen name="treinadora/cadastro" />
+      <Stack.Screen name="treinadora/index" />
+      <Stack.Screen name="cliente/codigo" />
+      <Stack.Screen name="cliente/cadastro" />
+      <Stack.Screen name="cliente/instrucoes" />
+      <Stack.Screen name="cliente/teste" />
+      <Stack.Screen name="cliente/processando" />
+      <Stack.Screen name="cliente/resultado" />
     </Stack>
   );
 }
