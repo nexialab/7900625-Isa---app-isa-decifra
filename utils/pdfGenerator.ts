@@ -109,46 +109,99 @@ async function gerarPDFWeb(html: string, dados: PDFData): Promise<void> {
 }
 
 async function gerarPDFMobile(html: string, dados: PDFData): Promise<void> {
-  const result = await Print.printToFileAsync({
-    html,
-    base64: false,
-  });
-  
-  if (!result || !result.uri) {
-    throw new Error('Falha ao gerar PDF');
-  }
-  
-  const tempUri = result.uri;
-  const nomeSanitizado = sanitizarNomeArquivo(dados.cliente.nome);
-  const tipoRelatorio = dados.tipo === 'treinadora' ? 'Completo' : 'Resumido';
-  const nomeArquivo = `DECIFRA_${tipoRelatorio}_${nomeSanitizado}.pdf`;
-  
-  const diretorioCache = FileSystem.cacheDirectory || FileSystem.documentDirectory;
-  if (!diretorioCache) {
-    throw new Error('Diretório de cache não disponível');
-  }
-  
-  const uriFinal = `${diretorioCache}${nomeArquivo}`;
-  
-  await FileSystem.copyAsync({
-    from: tempUri,
-    to: uriFinal,
-  });
+  console.log('[PDF Mobile] Iniciando geração...');
   
   try {
-    await FileSystem.deleteAsync(tempUri, { idempotent: true });
-  } catch (e) {}
+    // 1. Gerar PDF
+    console.log('[PDF Mobile] Chamando Print.printToFileAsync...');
+    const result = await Print.printToFileAsync({
+      html,
+      base64: false,
+    });
+    
+    console.log('[PDF Mobile] Resultado:', result);
+    
+    if (!result || !result.uri) {
+      throw new Error('Falha ao gerar PDF: URI não retornada');
+    }
+    
+    const tempUri = result.uri;
+    console.log('[PDF Mobile] PDF temporário em:', tempUri);
+    
+    // 2. Preparar nome do arquivo
+    const nomeSanitizado = sanitizarNomeArquivo(dados.cliente.nome);
+    const tipoRelatorio = dados.tipo === 'treinadora' ? 'Completo' : 'Resumido';
+    const nomeArquivo = `DECIFRA_${tipoRelatorio}_${nomeSanitizado}.pdf`;
+    
+    // 3. Verificar diretório
+    const diretorioCache = FileSystem.cacheDirectory || FileSystem.documentDirectory;
+    console.log('[PDF Mobile] Diretório cache:', diretorioCache);
+    console.log('[PDF Mobile] Document directory:', FileSystem.documentDirectory);
+    
+    if (!diretorioCache) {
+      throw new Error('Diretório de cache não disponível');
+    }
+    
+    // Garantir que o caminho termina com /
+    const diretorioBase = diretorioCache.endsWith('/') ? diretorioCache : `${diretorioCache}/`;
+    const uriFinal = `${diretorioBase}${nomeArquivo}`;
+    
+    console.log('[PDF Mobile] URI final:', uriFinal);
+    
+    // 4. Verificar se arquivo temporário existe
+    const tempFileInfo = await FileSystem.getInfoAsync(tempUri);
+    console.log('[PDF Mobile] Info arquivo temp:', tempFileInfo);
+    
+    if (!tempFileInfo.exists) {
+      throw new Error('Arquivo PDF temporário não foi criado');
+    }
+    
+    // 5. Copiar arquivo
+    console.log('[PDF Mobile] Copiando arquivo...');
+    await FileSystem.copyAsync({
+      from: tempUri,
+      to: uriFinal,
+    });
+    
+    // 6. Verificar se copiou
+    const finalFileInfo = await FileSystem.getInfoAsync(uriFinal);
+    console.log('[PDF Mobile] Info arquivo final:', finalFileInfo);
+    
+    if (!finalFileInfo.exists) {
+      throw new Error('Arquivo PDF final não foi criado');
+    }
+    
+    // 7. Limpar temp
+    try {
+      await FileSystem.deleteAsync(tempUri, { idempotent: true });
+      console.log('[PDF Mobile] Arquivo temporário removido');
+    } catch (e) {
+      console.warn('[PDF Mobile] Erro ao remover temp:', e);
+    }
 
-  const isAvailable = await Sharing.isAvailableAsync();
-  if (!isAvailable) {
-    throw new Error('Compartilhamento não disponível');
+    // 8. Verificar sharing
+    console.log('[PDF Mobile] Verificando Sharing...');
+    const isAvailable = await Sharing.isAvailableAsync();
+    console.log('[PDF Mobile] Sharing disponível:', isAvailable);
+    
+    if (!isAvailable) {
+      throw new Error('Compartilhamento não disponível neste dispositivo');
+    }
+
+    // 9. Compartilhar
+    console.log('[PDF Mobile] Abrindo share sheet...');
+    await Sharing.shareAsync(uriFinal, {
+      UTI: '.pdf',
+      mimeType: 'application/pdf',
+      dialogTitle: 'Compartilhar Resultado DECIFRA',
+    });
+    
+    console.log('[PDF Mobile] Sucesso!');
+    
+  } catch (error) {
+    console.error('[PDF Mobile] Erro detalhado:', error);
+    throw error;
   }
-
-  await Sharing.shareAsync(uriFinal, {
-    UTI: '.pdf',
-    mimeType: 'application/pdf',
-    dialogTitle: 'Compartilhar Resultado DECIFRA',
-  });
 }
 
 function gerarTemplateHTML(dados: PDFData): string {
