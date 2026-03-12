@@ -5,7 +5,6 @@
 
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
 import { FATORES } from '@/constants/ipip';
 import type { FatorKey } from '@/constants/ipip';
@@ -128,16 +127,7 @@ async function gerarPDFMobile(html: string, dados: PDFData): Promise<void> {
     const tempUri = result.uri;
     console.log('[PDF Mobile] PDF temporário em:', tempUri);
     
-    // 2. Verificar se arquivo temporário existe
-    const tempFileInfo = await FileSystem.getInfoAsync(tempUri);
-    console.log('[PDF Mobile] Info arquivo temp:', tempFileInfo);
-    
-    if (!tempFileInfo.exists) {
-      throw new Error('Arquivo PDF temporário não foi criado');
-    }
-    
-    // 3. No iOS/Android, usamos o arquivo temporário diretamente
-    // pois FileSystem.cacheDirectory pode ser undefined no Expo Go
+    // 2. Verificar sharing
     console.log('[PDF Mobile] Verificando Sharing...');
     const isAvailable = await Sharing.isAvailableAsync();
     console.log('[PDF Mobile] Sharing disponível:', isAvailable);
@@ -146,8 +136,8 @@ async function gerarPDFMobile(html: string, dados: PDFData): Promise<void> {
       throw new Error('Compartilhamento não disponível neste dispositivo');
     }
 
-    // 4. Compartilhar o arquivo temporário diretamente
-    console.log('[PDF Mobile] Abrindo share sheet com:', tempUri);
+    // 3. Compartilhar o arquivo temporário diretamente
+    console.log('[PDF Mobile] Abrindo share sheet...');
     await Sharing.shareAsync(tempUri, {
       UTI: '.pdf',
       mimeType: 'application/pdf',
