@@ -7,7 +7,6 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
-import { Asset } from 'expo-asset';
 import { FATORES } from '@/constants/ipip';
 import type { FatorKey } from '@/constants/ipip';
 
@@ -70,63 +69,6 @@ function sanitizarNomeArquivo(nome: string): string {
     .substring(0, 50);
 }
 
-/**
- * Carrega a logo como base64 para embed no PDF
- * Usa expo-asset para garantir que o asset esteja disponível
- */
-async function getLogoBase64(): Promise<string> {
-  try {
-    // Carrega o asset usando expo-asset
-    const asset = Asset.fromModule(require('@/assets/images/icon.png'));
-    await asset.downloadAsync();
-    
-    if (!asset.localUri) {
-      console.warn('[PDF] Asset não disponível localmente');
-      return '';
-    }
-    
-    // Lê o arquivo como base64
-    const base64 = await FileSystem.readAsStringAsync(asset.localUri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-    
-    return `data:image/png;base64,${base64}`;
-  } catch (error) {
-    console.warn('[PDF] Erro ao carregar logo:', error);
-    return '';
-  }
-}
-
-/**
- * Logo em CSS puro - Fallback quando imagem não carrega
- * Usa múltiplos elementos posicionados via margin/padding
- */
-function getLogoFallbackHTML(): string {
-  const terracota = '#C4785A';
-  const cream = '#F5F0E8';
-  const vinhoDeep = '#2D1518';
-  
-  return `
-    <div style="text-align: center;">
-      <!-- Container principal -->
-      <div style="display: inline-block; padding: 8px; background: ${vinhoDeep}; border: 2px solid ${terracota}; border-radius: 50%; width: 64px; height: 64px; position: relative;">
-        <!-- Círculos das pétalas (8 posições) -->
-        <div style="position: absolute; width: 12px; height: 12px; background: ${terracota}; border-radius: 50%; top: 2px; left: 26px;"></div>
-        <div style="position: absolute; width: 12px; height: 12px; background: ${terracota}; border-radius: 50%; top: 8px; right: 4px;"></div>
-        <div style="position: absolute; width: 12px; height: 12px; background: ${terracota}; border-radius: 50%; top: 26px; right: 2px;"></div>
-        <div style="position: absolute; width: 12px; height: 12px; background: ${terracota}; border-radius: 50%; bottom: 8px; right: 4px;"></div>
-        <div style="position: absolute; width: 12px; height: 12px; background: ${terracota}; border-radius: 50%; bottom: 2px; left: 26px;"></div>
-        <div style="position: absolute; width: 12px; height: 12px; background: ${terracota}; border-radius: 50%; bottom: 8px; left: 4px;"></div>
-        <div style="position: absolute; width: 12px; height: 12px; background: ${terracota}; border-radius: 50%; top: 26px; left: 2px;"></div>
-        <div style="position: absolute; width: 12px; height: 12px; background: ${terracota}; border-radius: 50%; top: 8px; left: 4px;"></div>
-        
-        <!-- Círculo central -->
-        <div style="position: absolute; width: 28px; height: 28px; background: ${cream}; border: 2px solid ${terracota}; border-radius: 50%; top: 18px; left: 18px; text-align: center; line-height: 24px; font-size: 16px; font-weight: bold; color: ${vinhoDeep}; font-family: Georgia, serif;">D</div>
-      </div>
-    </div>
-  `;
-}
-
 export async function gerarPDF(dados: PDFData): Promise<void> {
   console.log('[PDF] Iniciando geração do PDF para:', dados.cliente.nome);
   
@@ -138,9 +80,7 @@ export async function gerarPDF(dados: PDFData): Promise<void> {
       throw new Error('Scores dos fatores são obrigatórios');
     }
     
-    // Tenta carregar a logo
-    const logoBase64 = await getLogoBase64();
-    const html = gerarTemplateHTML(dados, logoBase64);
+    const html = gerarTemplateHTML(dados);
     
     if (Platform.OS === 'web') {
       await gerarPDFWeb(html, dados);
@@ -211,7 +151,7 @@ async function gerarPDFMobile(html: string, dados: PDFData): Promise<void> {
   });
 }
 
-function gerarTemplateHTML(dados: PDFData, logoBase64: string): string {
+function gerarTemplateHTML(dados: PDFData): string {
   const { cliente, resultado, protocolos, codigo, dataTeste, tipo } = dados;
   const isTreinadora = tipo === 'treinadora';
   
@@ -223,11 +163,6 @@ function gerarTemplateHTML(dados: PDFData, logoBase64: string): string {
   // Wrapper com fundo escuro garantido
   const pageBackground = COLORS.vinhoDeep;
   const cardBackground = COLORS.vinhoDark;
-
-  // Logo: usa imagem base64 se disponível, senão fallback CSS
-  const logoHTML = logoBase64 
-    ? `<img src="${logoBase64}" width="80" height="80" style="border-radius: 50%; display: block; margin: 0 auto;" />`
-    : getLogoFallbackHTML();
 
   // Facetas
   let facetasHTML = '';
@@ -367,10 +302,11 @@ function gerarTemplateHTML(dados: PDFData, logoBase64: string): string {
 <body>
   <div class="page-wrapper">
     
-    <!-- Header com Logo -->
+    <!-- Header (espaço reservado para logo no backend) -->
     <div style="text-align: center; padding-bottom: 28px; margin-bottom: 28px; border-bottom: 2px solid ${COLORS.terracota}60;">
-      ${logoHTML}
-      <div style="font-size: 36px; font-weight: 800; color: ${COLORS.cream}; margin-top: 16px; margin-bottom: 6px; letter-spacing: 4px; text-transform: uppercase; font-family: 'Urbanist', sans-serif;">DECIFRA</div>
+      <!-- Espaço reservado para logo -->
+      <div style="height: 20px;"></div>
+      <div style="font-size: 36px; font-weight: 800; color: ${COLORS.cream}; margin-bottom: 6px; letter-spacing: 4px; text-transform: uppercase; font-family: 'Urbanist', sans-serif;">DECIFRA</div>
       <div style="font-size: 15px; color: ${COLORS.terracota}; font-weight: 600; letter-spacing: 2px; font-family: 'Urbanist', sans-serif;">Avaliação de Personalidade Big Five</div>
       <div style="display: inline-block; background: ${COLORS.terracota}; color: ${COLORS.vinhoDeep}; padding: 10px 24px; border-radius: 24px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-top: 20px; font-family: 'Urbanist', sans-serif;">
         ${isTreinadora ? 'Relatório Completo' : 'Relatório do Cliente'}
