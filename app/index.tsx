@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Animated, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Animated, Dimensions, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -49,19 +49,25 @@ export default function IndexScreen() {
         }),
       ]),
       
-      // Iniciar pulsação do ícone
+      // Animação de respiração suave na logo
       Animated.loop(
         Animated.sequence([
+          // Inspiração (cresce suavemente)
           Animated.timing(pulseAnim, {
-            toValue: 1.03,
-            duration: 2000,
+            toValue: 1.05,
+            duration: 3000,
             useNativeDriver: true,
           }),
+          // Pequena pausa no topo
+          Animated.delay(500),
+          // Expiração (diminui suavemente)
           Animated.timing(pulseAnim, {
             toValue: 1,
-            duration: 2000,
+            duration: 3000,
             useNativeDriver: true,
           }),
+          // Pequena pausa na base
+          Animated.delay(500),
         ]),
         { iterations: -1 }
       ),
@@ -101,22 +107,19 @@ export default function IndexScreen() {
             }
           ]}
         >
-          {/* Icon Section */}
+          {/* Logo Section */}
           <Animated.View 
             style={[
-              styles.iconSection,
+              styles.logoSection,
               { transform: [{ scale: pulseAnim }] }
             ]}
           >
-            <View style={styles.iconContainer}>
-              {/* Stylized eye icon */}
-              <View style={styles.eyeOuter}>
-                <View style={styles.eyeInner}>
-                  <View style={styles.pupil}>
-                    <View style={styles.highlight} />
-                  </View>
-                </View>
-              </View>
+            <View style={styles.logoContainer}>
+              <Image 
+                source={require('../assets/images/icon.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
             </View>
           </Animated.View>
 
@@ -193,54 +196,19 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 40,
   },
-  iconSection: {
-    marginBottom: 32,
+  logoSection: {
+    marginBottom: 24,
   },
-  iconContainer: {
+  logoContainer: {
+    width: 140,
+    height: 140,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logo: {
     width: 120,
     height: 120,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  eyeOuter: {
-    width: 100,
-    height: 56,
-    borderRadius: 50,
-    backgroundColor: COLORS.cream,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: COLORS_ARTIO.terracota,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  eyeInner: {
-    width: 86,
-    height: 44,
-    borderRadius: 43,
-    backgroundColor: GRADIENTS.splash[2],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  pupil: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: COLORS_ARTIO.terracota,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  highlight: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: COLORS.cream,
-    opacity: 0.7,
+    borderRadius: 24,
   },
   textSection: {
     alignItems: 'center',
