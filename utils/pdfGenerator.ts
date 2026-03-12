@@ -152,65 +152,67 @@ async function gerarPDFMobile(html: string, dados: PDFData): Promise<void> {
 }
 
 /**
- * Logo SVG Artístico Ártio - Mandala Floral Estilizada
+ * Logo em HTML/CSS puro - Máxima compatibilidade com PDF
+ * Design: Flor de lótus estilizada com círculo central
  */
-function getLogoSVG(): string {
+function getLogoHTML(): string {
+  const terracota = '#C4785A';
+  const vinho = '#6B2D3A';
+  const cream = '#F5F0E8';
+  const vinhoDeep = '#2D1518';
+  
   return `
-    <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin: 0 auto; display: block;">
-      <defs>
-        <linearGradient id="petalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:#C4785A;stop-opacity:1" />
-          <stop offset="50%" style="stop-color:#D4896A;stop-opacity:1" />
-          <stop offset="100%" style="stop-color:#6B2D3A;stop-opacity:1" />
-        </linearGradient>
-        <linearGradient id="centerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:#F5F0E8;stop-opacity:1" />
-          <stop offset="100%" style="stop-color:#E8E0D1;stop-opacity:1" />
-        </linearGradient>
-        <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="1.5" result="blur"/>
-          <feMerge>
-            <feMergeNode in="blur"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
-      </defs>
+    <div style="width: 80px; height: 80px; margin: 0 auto; position: relative;">
+      <!-- Círculo externo -->
+      <div style="
+        position: absolute;
+        width: 76px; height: 76px;
+        border: 2px solid ${terracota};
+        border-radius: 50%;
+        top: 2px; left: 2px;
+        background: ${vinhoDeep};
+      "></div>
       
-      <!-- Círculo de fundo -->
-      <circle cx="40" cy="40" r="38" fill="#2D1518" stroke="#C4785A" stroke-width="1.5" opacity="0.8"/>
+      <!-- 8 Pétalas ao redor (posicionadas manualmente) -->
+      <!-- Superior -->
+      <div style="position: absolute; width: 14px; height: 20px; background: ${terracota}; border-radius: 50%; top: 6px; left: 33px;"></div>
+      <!-- Superior-direita -->
+      <div style="position: absolute; width: 14px; height: 20px; background: ${terracota}; border-radius: 50%; top: 12px; left: 50px; transform: rotate(45deg);"></div>
+      <!-- Direita -->
+      <div style="position: absolute; width: 14px; height: 20px; background: ${terracota}; border-radius: 50%; top: 30px; left: 56px; transform: rotate(90deg);"></div>
+      <!-- Inferior-direita -->
+      <div style="position: absolute; width: 14px; height: 20px; background: ${terracota}; border-radius: 50%; top: 48px; left: 50px; transform: rotate(135deg);"></div>
+      <!-- Inferior -->
+      <div style="position: absolute; width: 14px; height: 20px; background: ${terracota}; border-radius: 50%; top: 54px; left: 33px; transform: rotate(180deg);"></div>
+      <!-- Inferior-esquerda -->
+      <div style="position: absolute; width: 14px; height: 20px; background: ${terracota}; border-radius: 50%; top: 48px; left: 16px; transform: rotate(225deg);"></div>
+      <!-- Esquerda -->
+      <div style="position: absolute; width: 14px; height: 20px; background: ${terracota}; border-radius: 50%; top: 30px; left: 10px; transform: rotate(270deg);"></div>
+      <!-- Superior-esquerda -->
+      <div style="position: absolute; width: 14px; height: 20px; background: ${terracota}; border-radius: 50%; top: 12px; left: 16px; transform: rotate(315deg);"></div>
       
-      <!-- Pétalas estilizadas (8 pétalas ao redor) -->
-      <g filter="url(#softGlow)">
-        <!-- Pétala superior -->
-        <ellipse cx="40" cy="18" rx="8" ry="12" fill="url(#petalGrad)" opacity="0.9" transform="rotate(0 40 40)"/>
-        <!-- Pétala superior direita -->
-        <ellipse cx="40" cy="18" rx="8" ry="12" fill="url(#petalGrad)" opacity="0.85" transform="rotate(45 40 40)"/>
-        <!-- Pétala direita -->
-        <ellipse cx="40" cy="18" rx="8" ry="12" fill="url(#petalGrad)" opacity="0.9" transform="rotate(90 40 40)"/>
-        <!-- Pétala inferior direita -->
-        <ellipse cx="40" cy="18" rx="8" ry="12" fill="url(#petalGrad)" opacity="0.85" transform="rotate(135 40 40)"/>
-        <!-- Pétala inferior -->
-        <ellipse cx="40" cy="18" rx="8" ry="12" fill="url(#petalGrad)" opacity="0.9" transform="rotate(180 40 40)"/>
-        <!-- Pétala inferior esquerda -->
-        <ellipse cx="40" cy="18" rx="8" ry="12" fill="url(#petalGrad)" opacity="0.85" transform="rotate(225 40 40)"/>
-        <!-- Pétala esquerda -->
-        <ellipse cx="40" cy="18" rx="8" ry="12" fill="url(#petalGrad)" opacity="0.9" transform="rotate(270 40 40)"/>
-        <!-- Pétala superior esquerda -->
-        <ellipse cx="40" cy="18" rx="8" ry="12" fill="url(#petalGrad)" opacity="0.85" transform="rotate(315 40 40)"/>
-      </g>
-      
-      <!-- Círculo central com D -->
-      <circle cx="40" cy="40" r="18" fill="url(#centerGrad)" stroke="#C4785A" stroke-width="2" filter="url(#softGlow)"/>
-      
-      <!-- Letra D estilizada -->
-      <text x="40" y="48" text-anchor="middle" fill="#2D1518" font-size="26" font-weight="800" font-family="Georgia, 'Times New Roman', serif" style="font-style: italic;">D</text>
-      
-      <!-- Detalhes decorativos pontos -->
-      <circle cx="40" cy="8" r="2" fill="#F5F0E8" opacity="0.7"/>
-      <circle cx="40" cy="72" r="2" fill="#F5F0E8" opacity="0.7"/>
-      <circle cx="8" cy="40" r="2" fill="#F5F0E8" opacity="0.7"/>
-      <circle cx="72" cy="40" r="2" fill="#F5F0E8" opacity="0.7"/>
-    </svg>
+      <!-- Círculo central -->
+      <div style="
+        position: absolute;
+        width: 36px; height: 36px;
+        background: ${cream};
+        border: 2px solid ${terracota};
+        border-radius: 50%;
+        top: 22px; left: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      ">
+        <span style="
+          font-size: 22px;
+          font-weight: 800;
+          color: ${vinhoDeep};
+          font-family: Georgia, serif;
+          font-style: italic;
+          line-height: 1;
+        ">D</span>
+      </div>
+    </div>
   `;
 }
 
@@ -367,7 +369,7 @@ function gerarTemplateHTML(dados: PDFData): string {
     
     <!-- Header com Logo -->
     <div style="text-align: center; padding-bottom: 28px; margin-bottom: 28px; border-bottom: 2px solid ${COLORS.terracota}60;">
-      ${getLogoSVG()}
+      ${getLogoHTML()}
       <div style="font-size: 36px; font-weight: 800; color: ${COLORS.cream}; margin-top: 16px; margin-bottom: 6px; letter-spacing: 4px; text-transform: uppercase; font-family: 'Urbanist', sans-serif;">DECIFRA</div>
       <div style="font-size: 15px; color: ${COLORS.terracota}; font-weight: 600; letter-spacing: 2px; font-family: 'Urbanist', sans-serif;">Avaliação de Personalidade Big Five</div>
       <div style="display: inline-block; background: ${COLORS.terracota}; color: ${COLORS.vinhoDeep}; padding: 10px 24px; border-radius: 24px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-top: 20px; font-family: 'Urbanist', sans-serif;">
