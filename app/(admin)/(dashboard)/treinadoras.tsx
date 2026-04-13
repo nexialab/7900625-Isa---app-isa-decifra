@@ -12,13 +12,17 @@ import {
   ActivityIndicator,
   RefreshControl,
   Modal,
-  Alert,
 } from 'react-native';
 import { COLORS_ARTIO } from '@/constants/colors-artio';
 import { useTreinadorasAdmin } from '@/hooks/useTreinadorasAdmin';
 import { useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import type { TreinadoraAdmin } from '@/types/admin';
+import { showAlert } from '@/utils/alert';
+import { WebContent } from '@/components/WebContent';
+
+// Chave secreta para a Edge Function (deve ser a mesma configurada no Supabase)
+const ADMIN_SECRET = 'decifra-admin-secret-2024';
 
 // Cores específicas do admin
 const ADMIN_COLORS = {
@@ -43,8 +47,11 @@ export default function TreinadorasScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [novaTreinadora, setNovaTreinadora] = useState({
     nome: '',
-    email: ''
+    email: '',
+    whatsapp: '',
+    senha: ''
   });
+  const [mostrarSenha, setMostrarSenha] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Estados para o menu de ações
@@ -53,7 +60,7 @@ export default function TreinadorasScreen() {
 
   // Estados para o modal de editar treinadora
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editForm, setEditForm] = useState({ nome: '', email: '' });
+  const [editForm, setEditForm] = useState({ nome: '', email: '', whatsapp: '' });
 
   // Estado para modal de confirmação de exclusão
   const [confirmDeleteVisible, setConfirmDeleteVisible] = useState(false);
@@ -64,13 +71,57 @@ export default function TreinadorasScreen() {
     const query = searchQuery.toLowerCase();
     return treinadoras.filter(t => 
       t.nome.toLowerCase().includes(query) || 
-      t.email.toLowerCase().includes(query)
+      t.email.toLowerCase().includes(query) ||
+      (t.whatsapp && t.whatsapp.toLowerCase().includes(query))
     );
   }, [treinadoras, searchQuery]);
 
   // Formata data
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR');
+  };
+
+  // Função para formatar WhatsApp no padrão internacional (+5511999999999)
+  const formatarWhatsApp = (valor: string): string => {
+    // Remove tudo que não for dígito
+    let numeros = valor.replace(/\D/g, '');
+    
+    // Se começar com 55 e tiver mais de 2 dígitos, mantém
+    if (numeros.startsWith('55') && numeros.length > 2) {
+      // Limita a 13 dígitos (55 + DDD + 9 dígitos)
+      numeros = numeros.slice(0, 13);
+    } else if (!numeros.startsWith('55') && numeros.length > 0) {
+      // Se não começar com 55, adiciona
+      numeros = '55' + numeros;
+      numeros = numeros.slice(0, 13);
+    }
+    
+    return numeros;
+  };
+
+  // Função para formatar WhatsApp para exibição (+55 11 99999-9999)
+  const formatarWhatsAppExibicao = (valor: string): string => {
+    if (!valor) return '';
+    
+    // Remove tudo que não for dígito
+    const numeros = valor.replace(/\D/g, '');
+    
+    if (numeros.length <= 2) {
+      return numeros;
+    } else if (numeros.length <= 4) {
+      return `+${numeros.slice(0, 2)} ${numeros.slice(2)}`;
+    } else if (numeros.length <= 9) {
+      return `+${numeros.slice(0, 2)} ${numeros.slice(2, 4)} ${numeros.slice(4)}`;
+    } else {
+      return `+${numeros.slice(0, 2)} ${numeros.slice(2, 4)} ${numeros.slice(4, 9)}-${numeros.slice(9, 13)}`;
+    }
+  };
+
+  // Valida se o WhatsApp está no formato correto
+  const validarWhatsApp = (whatsapp: string): boolean => {
+    const numeros = whatsapp.replace(/\D/g, '');
+    // Deve ter 55 + DDD (2 dígitos) + número (8 ou 9 dígitos) = 12 ou 13 dígitos
+    return numeros.length >= 12 && numeros.length <= 13 && numeros.startsWith('55');
   };
 
   // Abrir menu de ações
@@ -84,18 +135,67 @@ export default function TreinadorasScreen() {
     if (!treinadoraSelecionada) return;
     setEditForm({
       nome: treinadoraSelecionada.nome,
-      email: treinadoraSelecionada.email
+      email: treinadoraSelecionada.email,
+      whatsapp: treinadoraSelecionada.whatsapp || ''
     });
     setMenuVisible(false);
     setEditModalVisible(true);
+  };
+
+  // Reenviar email de definição de senha
+  const handleReenviarSenha = async () => {
+    if (!treinadoraSelecionada) return;
+    
+    setMenuVisible(false);
+    setIsSubmitting(true);
+    
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        treinadoraSelecionada.email,
+        {
+          redirectTo: `${window.location.origin}/login`,
+        }
+      );
+
+      if (error) throw error;
+
+      showAlert(
+        'Email enviado',
+        `Instruções para definir a senha foram enviadas para ${treinadoraSelecionada.email}`
+      );
+    } catch (error: any) {
+      showAlert('Erro', error.message || 'Erro ao enviar email');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Função para editar treinadora
   const handleEditarTreinadora = async () => {
     if (!treinadoraSelecionada) return;
     
-    if (!editForm.nome.trim() || !editForm.email.trim()) {
-      Alert.alert('Erro', 'Preencha nome e email');
+    const emailLimpo = editForm.email.trim().toLowerCase();
+    
+    if (!editForm.nome.trim() || !emailLimpo) {
+      showAlert('Erro', 'Preencha nome e email');
+      return;
+    }
+
+    // Validar formato do email
+    if (!validarEmail(emailLimpo)) {
+      showAlert('Erro', 'Formato de email inválido');
+      return;
+    }
+
+    if (!editForm.whatsapp.trim()) {
+      showAlert('Erro', 'Preencha o WhatsApp');
+      return;
+    }
+
+    const whatsappFormatado = formatarWhatsApp(editForm.whatsapp);
+    
+    if (!validarWhatsApp(whatsappFormatado)) {
+      showAlert('Erro', 'WhatsApp inválido. Use o formato +55 11 99999-9999');
       return;
     }
 
@@ -106,20 +206,21 @@ export default function TreinadorasScreen() {
         .from('treinadoras')
         .update({
           nome: editForm.nome.trim(),
-          email: editForm.email.trim(),
+          email: emailLimpo,
+          whatsapp: whatsappFormatado,
         })
         .eq('id', treinadoraSelecionada.id);
 
       if (error) throw error;
 
-      Alert.alert('Sucesso', 'Treinadora atualizada com sucesso!');
+      showAlert('Sucesso', 'Treinadora atualizada com sucesso!');
       
       setEditModalVisible(false);
       setTreinadoraSelecionada(null);
       refetch();
     } catch (error: any) {
       console.error('Erro ao editar treinadora:', error);
-      Alert.alert('Erro', error.message || 'Erro ao editar treinadora');
+      showAlert('Erro', error.message || 'Erro ao editar treinadora');
     } finally {
       setIsSubmitting(false);
     }
@@ -231,45 +332,98 @@ export default function TreinadorasScreen() {
       }
 
       console.log('[Excluir] Treinadora excluída com sucesso!');
-      Alert.alert('Sucesso', 'Treinadora excluída com sucesso!');
+      showAlert('Sucesso', 'Treinadora excluída com sucesso!');
       setTreinadoraSelecionada(null);
       refetch();
     } catch (error: any) {
       console.error('[Excluir] Erro completo:', error);
-      Alert.alert('Erro', error.message || 'Erro ao excluir treinadora');
+      showAlert('Erro', error.message || 'Erro ao excluir treinadora');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Função para validar email
+  const validarEmail = (email: string): boolean => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email.trim());
+  };
+
   // Função para criar nova treinadora
   const handleCriarTreinadora = async () => {
-    if (!novaTreinadora.nome.trim() || !novaTreinadora.email.trim()) {
-      Alert.alert('Erro', 'Preencha nome e email');
+    const emailLimpo = novaTreinadora.email.trim().toLowerCase();
+    
+    if (!novaTreinadora.nome.trim() || !emailLimpo) {
+      showAlert('Erro', 'Preencha nome e email');
+      return;
+    }
+
+    // Validar formato do email
+    if (!validarEmail(emailLimpo)) {
+      showAlert('Erro', 'Formato de email inválido');
+      return;
+    }
+
+    // Bloquear emails de teste comuns que o Supabase rejeita
+    const emailProibidos = ['teste@gmail.com', 'teste2@gmail.com', 'test@gmail.com', 'admin@gmail.com'];
+    if (emailProibidos.includes(emailLimpo)) {
+      showAlert(
+        'Email não permitido', 
+        'Use um email válido e real. Emails de teste genéricos como "teste@gmail.com" são rejeitados pelo sistema de autenticação.'
+      );
+      return;
+    }
+
+    if (!novaTreinadora.whatsapp.trim()) {
+      showAlert('Erro', 'Preencha o WhatsApp');
+      return;
+    }
+
+    const whatsappFormatado = formatarWhatsApp(novaTreinadora.whatsapp);
+    
+    if (!validarWhatsApp(whatsappFormatado)) {
+      showAlert('Erro', 'WhatsApp inválido. Use o formato +55 11 99999-9999');
+      return;
+    }
+
+    // Validar senha
+    const senha = novaTreinadora.senha.trim();
+    if (!senha) {
+      showAlert('Erro', 'Defina uma senha para a treinadora');
+      return;
+    }
+    if (senha.length < 6) {
+      showAlert('Erro', 'A senha deve ter pelo menos 6 caracteres');
       return;
     }
 
     setIsSubmitting(true);
     
     try {
-      // 1. Criar senha temporária
-      const senhaTemporaria = Math.random().toString(36).slice(-8) + 'A1!';
-      
-      // 2. Criar usuário no Auth do Supabase
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: novaTreinadora.email.trim(),
-        password: senhaTemporaria,
-        options: {
-          data: {
+      // Usar a Edge Function para criar treinadora com email confirmado
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/criar-treinadora-admin`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
             nome: novaTreinadora.nome.trim(),
-          }
+            email: emailLimpo,
+            whatsapp: whatsappFormatado,
+            senha: senha,
+            secret: ADMIN_SECRET,
+          }),
         }
-      });
+      );
 
-      if (authError) {
-        // Se o email já existe, tentamos pegar o user existente
-        if (authError.message?.includes('already registered') || authError.message?.includes('already exists')) {
-          Alert.alert(
+      const result = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 409) {
+          showAlert(
             'Email já cadastrado',
             'Este email já está registrado no sistema. Deseja vincular à treinadora existente?',
             [
@@ -283,43 +437,30 @@ export default function TreinadorasScreen() {
           setIsSubmitting(false);
           return;
         }
-        throw authError;
+        throw new Error(result.error || 'Erro ao criar treinadora');
       }
 
-      if (!authData.user) {
-        throw new Error('Erro ao criar usuário no auth');
-      }
-
-      // 3. Inserir na tabela treinadoras COM o auth_user_id
-      const { error: dbError } = await supabase
-        .from('treinadoras')
-        .insert({
-          nome: novaTreinadora.nome.trim(),
-          email: novaTreinadora.email.trim(),
-          is_admin: false,
-          auth_user_id: authData.user.id // ✅ Vínculo correto!
-        });
-
-      if (dbError) {
-        // Rollback: deletar usuário do auth se falhar a inserção na tabela
-        console.error('Erro ao inserir treinadora:', dbError);
-        throw new Error(`Erro ao salvar treinadora: ${dbError.message}`);
-      }
-
-      // 4. Enviar email de convite (simulado por agora)
-      console.log('Senha temporária gerada:', senhaTemporaria);
-
-      Alert.alert(
+      showAlert(
         'Sucesso', 
-        `Treinadora criada com sucesso!\n\nSenha temporária: ${senhaTemporaria}\n\nA treinadora deve alterar a senha no primeiro login.`
+        `Treinadora "${novaTreinadora.nome.trim()}" criada com sucesso!\n\n` +
+        `📧 Email: ${emailLimpo}\n` +
+        `🔑 Senha: ${senha}\n\n` +
+        `✅ A treinadora já pode fazer login imediatamente!`
       );
       
       setModalVisible(false);
-      setNovaTreinadora({ nome: '', email: '' });
-      refetch(); // Recarrega a lista
+      setNovaTreinadora({ nome: '', email: '', whatsapp: '', senha: '' });
+      refetch();
     } catch (error: any) {
       console.error('Erro completo:', error);
-      Alert.alert('Erro', error.message || 'Erro ao criar treinadora');
+      
+      // Mensagem de erro mais amigável
+      let mensagemErro = error.message || 'Erro ao criar treinadora';
+      if (mensagemErro.includes('is invalid')) {
+        mensagemErro = 'O email informado foi rejeitado pelo sistema de autenticação. Use um email válido e real (não use emails de teste como teste@gmail.com).';
+      }
+      
+      showAlert('Erro', mensagemErro);
     } finally {
       setIsSubmitting(false);
     }
@@ -328,34 +469,56 @@ export default function TreinadorasScreen() {
   // Função auxiliar para vincular treinadora a usuário existente
   const criarTreinadoraSemAuth = async (dados: typeof novaTreinadora) => {
     try {
-      // Buscar o auth_user_id pelo email
-      const { data: users, error: userError } = await supabase
+      // Verificar se já existe treinadora com este email
+      const { data: existing, error: checkError } = await supabase
         .from('treinadoras')
-        .select('auth_user_id')
-        .eq('email', dados.email.trim())
+        .select('id')
+        .eq('email', dados.email.trim().toLowerCase())
         .single();
 
-      if (users?.auth_user_id) {
-        Alert.alert('Info', 'Este email já está vinculado a uma treinadora.');
+      if (existing) {
+        showAlert('Info', 'Este email já está vinculado a uma treinadora.');
         return;
       }
 
-      // Se não existe treinadora com esse email, criar uma nova (aguardando confirmação de email)
-      // Isso pode acontecer se o usuário foi criado no auth mas não na tabela
-      Alert.alert(
-        'Ação necessária',
-        'O usuário existe no sistema de autenticação mas não está vinculado a uma treinadora. Entre em contato com o suporte técnico.'
+      // Criar treinadora sem auth_user_id (será vinculado quando confirmar email)
+      const whatsappFormatado = formatarWhatsApp(dados.whatsapp);
+      const { error: insertError } = await supabase
+        .from('treinadoras')
+        .insert({
+          nome: dados.nome.trim(),
+          email: dados.email.trim().toLowerCase(),
+          whatsapp: whatsappFormatado,
+          is_admin: false,
+          auth_user_id: null
+        });
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      showAlert(
+        'Sucesso',
+        `Treinadora "${dados.nome.trim()}" criada!\n\n` +
+        `O usuário já existe no sistema de autenticação. ` +
+        `Quando ela confirmar o email e fizer login, a conta será vinculada automaticamente.`
       );
+      
+      setModalVisible(false);
+      setNovaTreinadora({ nome: '', email: '', whatsapp: '', senha: '' });
+      refetch();
     } catch (error: any) {
-      Alert.alert('Erro', error.message);
+      showAlert('Erro', error.message);
     }
   };
 
   return (
-    <ScrollView 
-      style={styles.container} 
-      showsVerticalScrollIndicator={false}
-      refreshControl={
+    <View style={styles.container}>
+      <WebContent>
+        <ScrollView 
+          style={{ flex: 1 }} 
+          showsVerticalScrollIndicator={false}
+          refreshControl={
         <RefreshControl
           refreshing={isLoading}
           onRefresh={refetch}
@@ -455,7 +618,14 @@ export default function TreinadorasScreen() {
                       {treinadora.nome.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                     </Text>
                   </View>
-                  <Text style={styles.nomeText}>{treinadora.nome}</Text>
+                  <View>
+                    <Text style={styles.nomeText}>{treinadora.nome}</Text>
+                    {treinadora.whatsapp && (
+                      <Text style={styles.whatsappText}>
+                        {formatarWhatsAppExibicao(treinadora.whatsapp)}
+                      </Text>
+                    )}
+                  </View>
                 </View>
                 <Text style={[styles.tableCell, styles.colEmail, styles.emailText]}>
                   {treinadora.email}
@@ -499,7 +669,9 @@ export default function TreinadorasScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.footer} />
+          <View style={styles.footer} />
+        </ScrollView>
+      </WebContent>
 
       {/* Menu de Ações (3 pontinhos) */}
       <Modal
@@ -518,7 +690,17 @@ export default function TreinadorasScreen() {
               <Text style={styles.menuItemIcon}>✎</Text>
               <View style={styles.menuItemContent}>
                 <Text style={styles.menuItemTitle}>Editar Treinadora</Text>
-                <Text style={styles.menuItemSubtitle}>Alterar nome e email</Text>
+                <Text style={styles.menuItemSubtitle}>Alterar nome, email e WhatsApp</Text>
+              </View>
+            </TouchableOpacity>
+            
+            <View style={styles.menuDivider} />
+            
+            <TouchableOpacity style={styles.menuItem} onPress={handleReenviarSenha}>
+              <Text style={styles.menuItemIcon}>🔑</Text>
+              <View style={styles.menuItemContent}>
+                <Text style={styles.menuItemTitle}>Redefinir Senha</Text>
+                <Text style={styles.menuItemSubtitle}>Enviar email para definir nova senha</Text>
               </View>
             </TouchableOpacity>
             
@@ -553,7 +735,7 @@ export default function TreinadorasScreen() {
 
             <View style={styles.modalBody}>
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Nome</Text>
+                <Text style={styles.inputLabel}>Nome *</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="Nome da treinadora"
@@ -564,7 +746,7 @@ export default function TreinadorasScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Email</Text>
+                <Text style={styles.inputLabel}>Email *</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="email@exemplo.com"
@@ -574,6 +756,43 @@ export default function TreinadorasScreen() {
                   value={novaTreinadora.email}
                   onChangeText={(text) => setNovaTreinadora({...novaTreinadora, email: text})}
                 />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>WhatsApp *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="+55 11 99999-9999"
+                  placeholderTextColor={ADMIN_COLORS.textMuted}
+                  keyboardType="phone-pad"
+                  value={formatarWhatsAppExibicao(novaTreinadora.whatsapp)}
+                  onChangeText={(text) => setNovaTreinadora({...novaTreinadora, whatsapp: formatarWhatsApp(text)})}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Senha *</Text>
+                <View style={styles.senhaContainer}>
+                  <TextInput
+                    style={[styles.input, styles.senhaInput]}
+                    placeholder="Mínimo 6 caracteres"
+                    placeholderTextColor={ADMIN_COLORS.textMuted}
+                    secureTextEntry={!mostrarSenha}
+                    value={novaTreinadora.senha}
+                    onChangeText={(text) => setNovaTreinadora({...novaTreinadora, senha: text})}
+                  />
+                  <TouchableOpacity 
+                    style={styles.verSenhaBtn}
+                    onPress={() => setMostrarSenha(!mostrarSenha)}
+                  >
+                    <Text style={styles.verSenhaText}>
+                      {mostrarSenha ? '🙈' : '👁️'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.senhaHint}>
+                  A treinadora usará esta senha para fazer login
+                </Text>
               </View>
             </View>
 
@@ -673,7 +892,7 @@ export default function TreinadorasScreen() {
 
             <View style={styles.modalBody}>
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Nome</Text>
+                <Text style={styles.inputLabel}>Nome *</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="Nome da treinadora"
@@ -684,7 +903,7 @@ export default function TreinadorasScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Email</Text>
+                <Text style={styles.inputLabel}>Email *</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="email@exemplo.com"
@@ -693,6 +912,18 @@ export default function TreinadorasScreen() {
                   autoCapitalize="none"
                   value={editForm.email}
                   onChangeText={(text) => setEditForm({...editForm, email: text})}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>WhatsApp *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="+55 11 99999-9999"
+                  placeholderTextColor={ADMIN_COLORS.textMuted}
+                  keyboardType="phone-pad"
+                  value={formatarWhatsAppExibicao(editForm.whatsapp)}
+                  onChangeText={(text) => setEditForm({...editForm, whatsapp: formatarWhatsApp(text)})}
                 />
               </View>
             </View>
@@ -720,7 +951,7 @@ export default function TreinadorasScreen() {
           </View>
         </View>
       </Modal>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -875,6 +1106,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: ADMIN_COLORS.text,
+  },
+  whatsappText: {
+    fontSize: 12,
+    color: ADMIN_COLORS.textMuted,
+    marginTop: 2,
   },
   emailText: {
     fontSize: 13,
@@ -1156,5 +1392,27 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: ADMIN_COLORS.border,
     marginHorizontal: 16,
+  },
+  senhaContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  senhaInput: {
+    flex: 1,
+    paddingRight: 50,
+  },
+  verSenhaBtn: {
+    position: 'absolute',
+    right: 12,
+    padding: 8,
+  },
+  verSenhaText: {
+    fontSize: 18,
+  },
+  senhaHint: {
+    fontSize: 12,
+    color: ADMIN_COLORS.textMuted,
+    marginTop: 4,
   },
 });

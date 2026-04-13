@@ -2,6 +2,7 @@
  * Configurações - Página de configurações administrativas
  */
 import { View, Text, StyleSheet } from 'react-native';
+import { WebContent } from '@/components/WebContent';
 
 // Cores específicas do admin
 const ADMIN_COLORS = {
@@ -13,8 +14,12 @@ const ADMIN_COLORS = {
 export default function ConfiguracoesScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Configurações</Text>
-      <Text style={styles.subtitle}>Em breve...</Text>
+      <WebContent>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={styles.title}>Configurações</Text>
+          <Text style={styles.subtitle}>Em breve...</Text>
+        </View>
+      </WebContent>
     </View>
   );
 }

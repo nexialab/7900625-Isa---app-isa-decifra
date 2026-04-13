@@ -16,6 +16,7 @@ import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useTreinadorasAdmin } from '@/hooks/useTreinadorasAdmin';
 import { useCodigosAdmin } from '@/hooks/useCodigosAdmin';
 import { useState, useMemo } from 'react';
+import { WebContent } from '@/components/WebContent';
 
 // Cores específicas do admin
 const ADMIN_COLORS = {
@@ -104,10 +105,12 @@ export default function RelatoriosScreen() {
   }, [codigos, treinadoras, stats]);
 
   return (
-    <ScrollView 
-      style={styles.container}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
+    <View style={styles.container}>
+      <WebContent>
+        <ScrollView 
+          style={{ flex: 1 }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
         <RefreshControl
           refreshing={refreshing}
           onRefresh={handleRefresh}
@@ -211,8 +214,10 @@ export default function RelatoriosScreen() {
         </View>
       </View>
 
-      <View style={styles.footer} />
-    </ScrollView>
+          <View style={styles.footer} />
+        </ScrollView>
+      </WebContent>
+    </View>
   );
 }
 

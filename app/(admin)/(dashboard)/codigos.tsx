@@ -12,13 +12,14 @@ import {
   ActivityIndicator,
   RefreshControl,
   Modal,
-  Alert,
 } from 'react-native';
 import { COLORS_ARTIO } from '@/constants/colors-artio';
 import { useCodigosAdmin } from '@/hooks/useCodigosAdmin';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useTreinadorasAdmin } from '@/hooks/useTreinadorasAdmin';
 import { supabase } from '@/lib/supabase/client';
+import { showAlert } from '@/utils/alert';
+import { WebContent } from '@/components/WebContent';
 import { useState, useMemo } from 'react';
 
 // Cores específicas do admin
@@ -122,13 +123,13 @@ export default function CodigosScreen() {
   // Handler para gerar códigos em lote
   const handleGerarCodigos = async () => {
     if (!geracaoConfig.treinadoraId) {
-      Alert.alert('Erro', 'Selecione uma treinadora');
+      showAlert('Erro', 'Selecione uma treinadora');
       return;
     }
 
     const quantidade = parseInt(geracaoConfig.quantidade);
     if (!quantidade || quantidade < 1 || quantidade > 100) {
-      Alert.alert('Erro', 'Quantidade deve ser entre 1 e 100');
+      showAlert('Erro', 'Quantidade deve ser entre 1 e 100');
       return;
     }
 
@@ -164,12 +165,12 @@ export default function CodigosScreen() {
       }
 
       if (erros.length > 0) {
-        Alert.alert(
+        showAlert(
           'Atenção', 
           `${codigosGerados.length} códigos gerados com sucesso.\n${erros.length} falhas:\n${erros.map(e => e.erro).join('\n')}`
         );
       } else {
-        Alert.alert('Sucesso', `${codigosGerados.length} códigos gerados com sucesso!`);
+        showAlert('Sucesso', `${codigosGerados.length} códigos gerados com sucesso!`);
       }
       
       setModalVisible(false);
@@ -178,17 +179,19 @@ export default function CodigosScreen() {
       refetch();
     } catch (error: any) {
       console.error('Erro ao gerar códigos:', error);
-      Alert.alert('Erro', error.message || 'Erro ao gerar códigos. Verifique as políticas RLS.');
+      showAlert('Erro', error.message || 'Erro ao gerar códigos. Verifique as políticas RLS.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <ScrollView 
-      style={styles.container} 
-      showsVerticalScrollIndicator={false}
-      refreshControl={
+    <View style={styles.container}>
+      <WebContent>
+        <ScrollView 
+          style={{ flex: 1 }} 
+          showsVerticalScrollIndicator={false}
+          refreshControl={
         <RefreshControl
           refreshing={isLoading}
           onRefresh={refetch}
@@ -354,7 +357,9 @@ export default function CodigosScreen() {
         </View>
       )}
 
-      <View style={styles.footer} />
+          <View style={styles.footer} />
+        </ScrollView>
+      </WebContent>
 
       {/* Modal para gerar códigos */}
       <Modal
@@ -483,7 +488,7 @@ export default function CodigosScreen() {
           </View>
         </View>
       </Modal>
-    </ScrollView>
+    </View>
   );
 }
 

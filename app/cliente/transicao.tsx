@@ -6,14 +6,15 @@
  */
 
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Animated, useWindowDimensions } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
+import { impactMedium } from '@/utils/haptics';
 import { STATION_THEMES } from '@/constants/colors-artio';
 import { COLORS } from '@/constants/colors';
+import { WebContent } from '@/components/WebContent';
 
-const { width, height } = Dimensions.get('window');
+
 
 const MENSAGENS_TRANSICAO: Record<number, string> = {
   1: 'Você explorou como pensa e processa o mundo. Agora vamos descobrir como você age.',
@@ -24,6 +25,7 @@ const MENSAGENS_TRANSICAO: Record<number, string> = {
 export default function TransicaoScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { width, height } = useWindowDimensions();
   
   const { clienteId, estacaoAtual, proximaEstacao } = params;
   const estacaoNum = parseInt(proximaEstacao as string) as 1 | 2 | 3 | 4;
@@ -38,7 +40,7 @@ export default function TransicaoScreen() {
 
   useEffect(() => {
     // Feedback tátil de transição
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    impactMedium();
     
     // Sequência de animação
     const sequence = Animated.sequence([
@@ -137,18 +139,19 @@ export default function TransicaoScreen() {
 
   return (
     <LinearGradient colors={temaEstacao.gradient} style={styles.container}>
-      <Animated.View 
-        style={[
-          styles.content,
-          {
-            opacity: fadeAnim,
-            transform: [
-              { scale: scaleAnim },
-              { translateY: slideAnim }
-            ],
-          }
-        ]}
-      >
+      <WebContent>
+        <Animated.View 
+          style={[
+            styles.content,
+            {
+              opacity: fadeAnim,
+              transform: [
+                { scale: scaleAnim },
+                { translateY: slideAnim }
+              ],
+            }
+          ]}
+        >
         {/* Elemento decorativo */}
         <Animated.View 
           style={[
@@ -198,7 +201,8 @@ export default function TransicaoScreen() {
         <Text style={[styles.textoEspera, { color: temaEstacao.textSecondary }]}>
           Preparando sua experiência...
         </Text>
-      </Animated.View>
+        </Animated.View>
+      </WebContent>
     </LinearGradient>
   );
 }

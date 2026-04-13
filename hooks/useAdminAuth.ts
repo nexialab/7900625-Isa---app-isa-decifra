@@ -28,21 +28,54 @@ export function useAdminAuth(): UseAdminAuthReturn {
 
   /**
    * Busca os dados do admin no banco de dados
+   * Tenta primeiro pelo auth_user_id, se não encontrar, busca pelo email
+   * e faz o vínculo automático (para treinadoras criadas antes de confirmar email)
    */
-  const fetchAdminData = useCallback(async (userId: string): Promise<AdminUser | null> => {
+  const fetchAdminData = useCallback(async (userId: string, userEmail?: string): Promise<AdminUser | null> => {
     try {
-      const { data, error } = await supabase
+      // 1. Tentar buscar pelo auth_user_id
+      const { data: byAuthId, error: errorByAuthId } = await supabase
         .from('treinadoras')
         .select('id, email, nome, is_admin, created_at')
         .eq('auth_user_id', userId)
         .single();
 
-      if (error) {
-        console.error('Erro ao buscar dados do admin:', error);
-        return null;
+      if (byAuthId) {
+        return byAuthId as AdminUser;
       }
 
-      return data as AdminUser;
+      // 2. Se não encontrou e temos o email, tentar buscar pelo email (auth_user_id = null)
+      if (userEmail) {
+        const { data: byEmail, error: errorByEmail } = await supabase
+          .from('treinadoras')
+          .select('id, email, nome, is_admin, created_at, auth_user_id')
+          .eq('email', userEmail.toLowerCase())
+          .single();
+
+        if (byEmail && byEmail.auth_user_id === null) {
+          // Vincular automaticamente: atualizar auth_user_id
+          const { error: updateError } = await supabase
+            .from('treinadoras')
+            .update({ auth_user_id: userId })
+            .eq('id', byEmail.id);
+
+          if (updateError) {
+            console.error('Erro ao vincular treinadora:', updateError);
+            return null;
+          }
+
+          // Retornar dados atualizados
+          return {
+            id: byEmail.id,
+            email: byEmail.email,
+            nome: byEmail.nome,
+            is_admin: byEmail.is_admin,
+            created_at: byEmail.created_at,
+          } as AdminUser;
+        }
+      }
+
+      return null;
     } catch (error) {
       console.error('Erro ao buscar dados do admin:', error);
       return null;
@@ -60,7 +93,7 @@ export function useAdminAuth(): UseAdminAuthReturn {
       return;
     }
 
-    const adminData = await fetchAdminData(currentSession.user.id);
+    const adminData = await fetchAdminData(currentSession.user.id, currentSession.user.email);
     
     if (adminData && adminData.is_admin) {
       setUser(adminData);
@@ -110,7 +143,7 @@ export function useAdminAuth(): UseAdminAuthReturn {
 
       // Verifica se é admin após login
       if (data.user) {
-        const adminData = await fetchAdminData(data.user.id);
+        const adminData = await fetchAdminData(data.user.id, data.user.email);
         
         if (!adminData || !adminData.is_admin) {
           // Faz logout se não for admin

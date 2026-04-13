@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { COLORS_ARTIO } from '@/constants/colors-artio';
+import { WebContent } from '@/components/WebContent';
 
 // Cores específicas do admin
 const ADMIN_COLORS = {
@@ -98,7 +99,9 @@ const COMPRAS = [
 
 export default function ComprasScreen() {
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
+      <WebContent>
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
         <View>
@@ -235,8 +238,10 @@ export default function ComprasScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.footer} />
-    </ScrollView>
+          <View style={styles.footer} />
+        </ScrollView>
+      </WebContent>
+    </View>
   );
 }
 

@@ -9,6 +9,9 @@ export interface CodigoDisponivel {
   codigo: string;
   validoAte: string;
   diasRestantes: number;
+  emailEnviado?: string | null;
+  nomeAluna?: string | null;
+  dataEnvioEmail?: string | null;
 }
 
 /**
@@ -70,8 +73,8 @@ export function useMeusCodigos(treinadoraId?: string) {
       }
 
       const { data, error } = await supabase
-        .from('codigos')
-        .select('id, codigo, valido_ate')
+        .from('codigos_com_ultimo_email')
+        .select('id, codigo, valido_ate, ultimo_email_destinatario, ultimo_email_enviado_em')
         .eq('treinadora_id', treinadoraId)
         .eq('usado', false)
         .eq('distribuido', false)
@@ -85,11 +88,13 @@ export function useMeusCodigos(treinadoraId?: string) {
 
       // Mapeia os dados do Supabase para a interface CodigoDisponivel
       const disponiveis: CodigoDisponivel[] =
-        data?.map((item) => ({
+        (data as any[])?.map((item: any) => ({
           id: item.id,
           codigo: item.codigo,
           validoAte: item.valido_ate,
           diasRestantes: calcularDiasRestantes(item.valido_ate),
+          emailEnviado: item.ultimo_email_destinatario,
+          dataEnvioEmail: item.ultimo_email_enviado_em,
         })) ?? [];
 
       return {

@@ -13,6 +13,7 @@ import { View, StyleSheet } from "react-native";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
 
+
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {

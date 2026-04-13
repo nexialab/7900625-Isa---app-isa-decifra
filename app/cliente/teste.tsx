@@ -6,13 +6,11 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
-  Alert,
   ActivityIndicator,
   Animated,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
 import { QUESTOES } from '@/constants/questoes';
 import { getQuestoesEstacao } from '@/constants/ordem-questoes';
 import { STATION_THEMES } from '@/constants/colors-artio';
@@ -20,6 +18,9 @@ import { RespostaButton } from '@/components/RespostaButton';
 import { supabase } from '@/lib/supabase/client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '@/constants/colors';
+import { WebContent } from '@/components/WebContent';
+import { showAlert } from '@/utils/alert';
+import { impactLight, impactMedium, notificationSuccess, notificationWarning } from '@/utils/haptics';
 
 const ESCALA = [
   { valor: 1, label: 'Discordo\nTotalmente' },
@@ -78,7 +79,7 @@ export default function ClienteTesteScreen() {
 
   const salvarRespostaLocal = async (questaoId: number, resposta: number) => {
     // Feedback tátil
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    impactLight();
     
     const novasRespostas = { ...respostas, [questaoId]: resposta };
     setRespostas(novasRespostas);
@@ -110,8 +111,8 @@ export default function ClienteTesteScreen() {
   const finalizarEstacao = async () => {
     if (!todasRespondidas()) {
       const pendentes = questoesIds.length - Object.keys(respostas).length;
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      Alert.alert(
+      notificationWarning();
+      showAlert(
         'Questões pendentes',
         `Você ainda tem ${pendentes} questões para responder nesta estação.`
       );
@@ -119,7 +120,7 @@ export default function ClienteTesteScreen() {
     }
 
     setSalvando(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    impactMedium();
 
     try {
       const respostasArray = questoesIds.map((questaoId: number) => ({
@@ -134,7 +135,7 @@ export default function ClienteTesteScreen() {
 
       if (error) {
         console.error('Erro ao salvar respostas:', error);
-        Alert.alert('Erro', 'Não foi possível salvar suas respostas. Tente novamente.');
+        showAlert('Erro', 'Não foi possível salvar suas respostas. Tente novamente.');
         setSalvando(false);
         return;
       }
@@ -147,7 +148,7 @@ export default function ClienteTesteScreen() {
 
       await AsyncStorage.removeItem(`respostas_estacao_${estacaoAtual}`);
 
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      notificationSuccess();
 
       if (estacaoAtual < 4) {
         // Mensagem de transição entre estações
@@ -167,7 +168,7 @@ export default function ClienteTesteScreen() {
       }
     } catch (error: any) {
       console.error('Erro ao finalizar estacao:', error);
-      Alert.alert('Erro', 'Ocorreu um erro ao finalizar a estação');
+      showAlert('Erro', 'Ocorreu um erro ao finalizar a estação');
     } finally {
       setSalvando(false);
     }
@@ -190,8 +191,9 @@ export default function ClienteTesteScreen() {
   return (
     <LinearGradient colors={temaEstacao.gradient} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        {/* Header com tema da estação */}
-        <View style={styles.header}>
+        <WebContent>
+          {/* Header com tema da estação */}
+          <View style={styles.header}>
           <View style={styles.headerTop}>
             <View style={styles.stationBadge}>
               <Text style={[styles.stationIcon, { color: temaEstacao.color }]}>
@@ -294,8 +296,9 @@ export default function ClienteTesteScreen() {
             )}
           </TouchableOpacity>
 
-          <View style={styles.espacoFinal} />
-        </ScrollView>
+            <View style={styles.espacoFinal} />
+          </ScrollView>
+        </WebContent>
       </SafeAreaView>
     </LinearGradient>
   );

@@ -1,0 +1,8 @@
+# Supabase Configuration File
+# https://supabase.com/docs/guides/cli/config
+
+project_id = "wqbppfngjolnxbwqngfo"
+
+[functions.criar-treinadora-admin]
+enabled = true
+verify_jwt = false  # Permite chamadas sem JWT (usando secret próprio)

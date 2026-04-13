@@ -12,13 +12,14 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS_ARTIO, GRADIENTS } from '@/constants/colors-artio';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
+import { showAlert } from '@/utils/alert';
+import { WebContent } from '@/components/WebContent';
 
 // Cores específicas do admin
 const ADMIN_COLORS = {
@@ -51,7 +52,7 @@ export default function AdminLoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos');
+      showAlert('Erro', 'Por favor, preencha todos os campos');
       return;
     }
 
@@ -62,7 +63,7 @@ export default function AdminLoginScreen() {
     setLoading(false);
     
     if (!success) {
-      Alert.alert('Erro de login', error?.message || 'Não foi possível fazer login');
+      showAlert('Erro de login', error?.message || 'Não foi possível fazer login');
     }
   };
 
@@ -73,10 +74,11 @@ export default function AdminLoginScreen() {
     >
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'web' ? undefined : (Platform.OS === 'ios' ? 'padding' : 'height')}
           style={styles.keyboardView}
         >
-          <View style={styles.content}>
+          <WebContent>
+            <View style={styles.content}>
             {/* Logo/Ícone */}
             <View style={styles.logoContainer}>
               <View style={styles.logoCircle}>
@@ -154,7 +156,8 @@ export default function AdminLoginScreen() {
             <Text style={styles.footer}>
               © 2025 DECIFRA. Todos os direitos reservados.
             </Text>
-          </View>
+            </View>
+          </WebContent>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </LinearGradient>

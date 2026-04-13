@@ -6,8 +6,8 @@ import { useEffect, useState } from 'react';
     StyleSheet,
     SafeAreaView,
     ScrollView,
-    Alert,
     ActivityIndicator,
+    Linking,
   } from 'react-native';
   import { useRouter, useLocalSearchParams } from 'expo-router';
   import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +20,8 @@ import { useEffect, useState } from 'react';
   import { recomendarProtocolosCliente } from '@/utils/recomendacao';
   import { COLORS } from '@/constants/colors';
   import { gerarPDF } from '@/utils/pdfGenerator';
+  import { showAlert } from '@/utils/alert';
+import { WebContent } from '@/components/WebContent';
   import {
     gerarInterpretacaoPrincipal, 
     type ScoreFator, 
@@ -69,12 +71,22 @@ import { useEffect, useState } from 'react';
     const [resultado, setResultado] = useState<Resultado | null>(null);
     const [protocolos, setProtocolos] = useState<Protocolo[]>([]);
     const [codigoInfo, setCodigoInfo] = useState<CodigoInfo | null>(null);
+    const [treinadoraInfo, setTreinadoraInfo] = useState<{whatsapp: string | null, nome: string | null}>({whatsapp: null, nome: null});
 
     useEffect(() => {
       carregarResultado();
     }, []);
 
     const carregarResultado = async () => {
+      console.log('[Resultado] Params recebidos:', { clienteId, resultadoId });
+      
+      if (!clienteId || !resultadoId) {
+        console.error('[Resultado] Params faltando:', { clienteId, resultadoId });
+        showAlert('Erro', 'Dados insuficientes para carregar o resultado');
+        setLoading(false);
+        return;
+      }
+      
       try {
         const { data: resultadoData, error: resultadoError } = await supabase
           .from('resultados')
@@ -84,7 +96,7 @@ import { useEffect, useState } from 'react';
 
         if (resultadoError || !resultadoData) {
           console.error('Erro ao buscar resultado:', resultadoError);
-          Alert.alert('Erro', 'Não foi possível carregar os resultados');
+          showAlert('Erro', 'Não foi possível carregar os resultados');
           return;
         }
 
@@ -141,9 +153,31 @@ import { useEffect, useState } from 'react';
         if (!codigoError && codigoData) {
           setCodigoInfo(codigoData as CodigoInfo);
         }
+
+        // Buscar dados da treinadora associada ao cliente
+        const { data: clienteData, error: clienteError } = await supabase
+          .from('clientes')
+          .select('treinadora_id')
+          .eq('id', clienteId)
+          .single();
+
+        if (!clienteError && clienteData?.treinadora_id) {
+          const { data: treinadoraData, error: treinadoraError } = await supabase
+            .from('treinadoras')
+            .select('whatsapp, nome')
+            .eq('id', clienteData.treinadora_id)
+            .single();
+
+          if (!treinadoraError && treinadoraData) {
+            setTreinadoraInfo({
+              whatsapp: treinadoraData.whatsapp,
+              nome: treinadoraData.nome
+            });
+          }
+        }
       } catch (error: any) {
         console.error('Erro ao carregar resultado:', error);
-        Alert.alert('Erro', 'Ocorreu um erro ao carregar os resultados');
+        showAlert('Erro', 'Ocorreu um erro ao carregar os resultados');
       } finally {
         setLoading(false);
       }
@@ -223,9 +257,48 @@ import { useEffect, useState } from 'react';
         });
       } catch (error: any) {
         console.error('Erro ao gerar PDF:', error);
-        Alert.alert('Erro', 'Não foi possível gerar o PDF. Tente novamente.');
+        showAlert('Erro', 'Não foi possível gerar o PDF. Tente novamente.');
       } finally {
         setGerandoPDF(false);
+      }
+    };
+
+    const handleAbrirWhatsApp = async () => {
+      if (!treinadoraInfo.whatsapp) {
+        showAlert('Erro', 'Número da treinadora não encontrada');
+        return;
+      }
+
+      // Garantir que o número está no formato correto (+55...)
+      let numeroWhatsApp = treinadoraInfo.whatsapp.replace(/\D/g, '');
+      
+      // Se não começar com 55, adicionar
+      if (!numeroWhatsApp.startsWith('55')) {
+        numeroWhatsApp = '55' + numeroWhatsApp;
+      }
+
+      // Adicionar o + no início
+      numeroWhatsApp = '+' + numeroWhatsApp;
+
+      // Criar mensagem pré-preenchida com arquétipo
+      const nomeTreinadora = treinadoraInfo.nome || '';
+      const arquetipo = interpretacaoPrincipal?.resumo?.arquetipo || '';
+      const codigo = codigoInfo?.codigo || '';
+
+      const mensagem = `Olá ${nomeTreinadora}!\n\nFinalizei o teste DECIFRA! Meu perfil principal é: ${arquetipo}\n\nGostaria de agendar minha devolutiva para entender melhor meu resultado.\n\nMeu código: ${codigo}`;
+
+      const url = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensagem)}`;
+
+      try {
+        const canOpen = await Linking.canOpenURL(url);
+        if (canOpen) {
+          await Linking.openURL(url);
+        } else {
+          showAlert('Erro', 'Não foi possível abrir o WhatsApp');
+        }
+      } catch (error) {
+        console.error('Erro ao abrir WhatsApp:', error);
+        showAlert('Erro', 'Não foi possível abrir o WhatsApp');
       }
     };
 
@@ -290,7 +363,8 @@ import { useEffect, useState } from 'react';
     return (
       <LinearGradient colors={[...COLORS.gradient]} style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
-          <ScrollView style={styles.content}>
+          <WebContent>
+            <ScrollView style={styles.content}>
             <View style={styles.header}>
               <Text style={styles.title}>Seu Resultado</Text>
               <Text style={styles.subtitle}>
@@ -534,6 +608,19 @@ import { useEffect, useState } from 'react';
               </View>
             )}
 
+            {/* Botão WhatsApp */}
+            {treinadoraInfo.whatsapp && (
+              <View style={styles.whatsappContainer}>
+                <TouchableOpacity
+                  style={styles.botaoWhatsApp}
+                  onPress={handleAbrirWhatsApp}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.botaoWhatsAppTexto}>💬 Falar com minha treinadora</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             {/* Botões de Ação */}
             <View style={styles.botoesContainer}>
               <TouchableOpacity
@@ -558,8 +645,9 @@ import { useEffect, useState } from 'react';
               </TouchableOpacity>
             </View>
 
-            <View style={styles.espacoFinal} />
-          </ScrollView>
+              <View style={styles.espacoFinal} />
+            </ScrollView>
+          </WebContent>
         </SafeAreaView>
       </LinearGradient>
     );
@@ -1222,5 +1310,25 @@ import { useEffect, useState } from 'react';
     },
     botaoDisabled: {
       opacity: 0.7,
+    },
+    whatsappContainer: {
+      paddingHorizontal: 24,
+      marginBottom: 16,
+    },
+    botaoWhatsApp: {
+      backgroundColor: '#25D366',
+      paddingVertical: 18,
+      borderRadius: 14,
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 4,
+    },
+    botaoWhatsAppTexto: {
+      color: '#FFFFFF',
+      fontSize: 17,
+      fontWeight: '600' as const,
     },
   });

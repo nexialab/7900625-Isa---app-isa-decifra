@@ -14,24 +14,33 @@ export type Json =
             id: string
             email: string
             nome: string
+            whatsapp: string | null
             creditos: number
             created_at: string
             updated_at: string
+            auth_user_id: string | null
+            is_admin: boolean
           }
           Insert: {
             id: string
             email: string
             nome: string
+            whatsapp?: string | null
             creditos?: number
             created_at?: string
             updated_at?: string
+            auth_user_id?: string | null
+            is_admin?: boolean
           }
           Update: {
             id?: string
             email?: string
             nome?: string
+            whatsapp?: string | null
             creditos?: number
             updated_at?: string
+            auth_user_id?: string | null
+            is_admin?: boolean
           }
         }
         codigos: {
@@ -42,6 +51,10 @@ export type Json =
             valido_ate: string
             usado: boolean
             cliente_id: string | null
+            distribuido: boolean
+            email_enviado: string | null
+            nome_aluna: string | null
+            data_envio_email: string | null
             created_at: string
           }
           Insert: {
@@ -51,11 +64,19 @@ export type Json =
             valido_ate: string
             usado?: boolean
             cliente_id?: string | null
+            distribuido?: boolean
+            email_enviado?: string | null
+            nome_aluna?: string | null
+            data_envio_email?: string | null
             created_at?: string
           }
           Update: {
             usado?: boolean
             cliente_id?: string | null
+            distribuido?: boolean
+            email_enviado?: string | null
+            nome_aluna?: string | null
+            data_envio_email?: string | null
           }
         }
         clientes: {
@@ -175,9 +196,52 @@ export type Json =
             prioridade?: number
           }
         }
+        codigo_emails: {
+          Row: {
+            id: string
+            codigo_id: string
+            treinadora_id: string
+            email_destinatario: string
+            nome_destinatario: string | null
+            enviado_em: string
+            message_id: string | null
+            created_at: string
+          }
+          Insert: {
+            id?: string
+            codigo_id: string
+            treinadora_id: string
+            email_destinatario: string
+            nome_destinatario?: string | null
+            enviado_em?: string
+            message_id?: string | null
+            created_at?: string
+          }
+          Update: {
+            codigo_id?: string
+            treinadora_id?: string
+            email_destinatario?: string
+            nome_destinatario?: string | null
+            enviado_em?: string
+            message_id?: string | null
+          }
+        }
       }
       Views: {
-        [_ in never]: never
+        codigos_com_ultimo_email: {
+          Row: {
+            id: string
+            codigo: string
+            treinadora_id: string
+            valido_ate: string
+            usado: boolean
+            cliente_id: string | null
+            distribuido: boolean
+            created_at: string
+            ultimo_email_destinatario: string | null
+            ultimo_email_enviado_em: string | null
+          }
+        }
       }
       Functions: {
         [_ in never]: never

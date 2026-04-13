@@ -15,6 +15,7 @@ import {
 import { useRouter } from 'expo-router';
 import { COLORS_ARTIO } from '@/constants/colors-artio';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { WebContent } from '@/components/WebContent';
 
 // Cores específicas do admin
 const ADMIN_COLORS = {
@@ -133,10 +134,12 @@ export default function DashboardOverviewScreen() {
   }));
 
   return (
-    <ScrollView 
-      style={styles.container} 
-      showsVerticalScrollIndicator={false}
-      refreshControl={
+    <View style={styles.container}>
+      <WebContent>
+        <ScrollView 
+          style={{ flex: 1 }} 
+          showsVerticalScrollIndicator={false}
+          refreshControl={
         <RefreshControl
           refreshing={isLoading}
           onRefresh={refetch}
@@ -310,8 +313,10 @@ export default function DashboardOverviewScreen() {
       </View>
 
       {/* Footer spacing */}
-      <View style={styles.footer} />
-    </ScrollView>
+          <View style={styles.footer} />
+        </ScrollView>
+      </WebContent>
+    </View>
   );
 }
 

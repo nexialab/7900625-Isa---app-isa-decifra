@@ -8,15 +8,16 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ActivityIndicator,
   Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
 import { supabase } from '@/lib/supabase/client';
+import { showAlert } from '@/utils/alert';
+import { impactMedium, notificationSuccess, notificationWarning, notificationError } from '@/utils/haptics';
 import { COLORS } from '@/constants/colors';
+import { WebContent } from '@/components/WebContent';
 
 type InputState = 'default' | 'valid' | 'invalid';
 
@@ -60,7 +61,7 @@ export default function ClienteCodigoScreen() {
   };
 
   const shake = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    notificationError();
     
     Animated.sequence([
       Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
@@ -73,53 +74,71 @@ export default function ClienteCodigoScreen() {
   };
 
   const validarCodigo = async () => {
+    console.log('[Codigo] validarCodigo chamado', { codigo, loading });
+    
     // Validação do formato DECF-XXXX-XXXX
     if (!codigo || !codigo.match(/^DECF-[A-Z0-9]{4}-[A-Z0-9]{4}$/)) {
+      console.log('[Codigo] Formato inválido');
       shake();
       setInputState('invalid');
-      Alert.alert('Código inválido', 'Por favor, insira um código no formato DECF-XXXX-XXXX');
+      showAlert('Código inválido', 'Por favor, insira um código no formato DECF-XXXX-XXXX');
       return;
     }
 
+    console.log('[Codigo] Código válido, iniciando loading...');
     setLoading(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    impactMedium();
 
     try {
+      console.log('[Codigo] Buscando código no banco...');
       const { data: codigoData, error: codigoError } = await supabase
         .from('codigos')
         .select('*')
         .eq('codigo', codigo)
         .single();
+      
+      console.log('[Codigo] Resultado da busca:', { codigoData, codigoError });
 
       if (codigoError || !codigoData) {
         shake();
         setInputState('invalid');
-        Alert.alert('Código inválido', 'O código informado não existe.');
+        showAlert('Código inválido', 'O código informado não existe.');
         setLoading(false);
         return;
       }
 
+      console.log('[Codigo] Verificando se código foi usado:', codigoData.usado);
+      
       if (codigoData.usado) {
+        console.log('[Codigo] Código já usado, buscando cliente_id:', codigoData.cliente_id);
         // Código já utilizado - verificar se tem resultado para redirecionar
         if (!codigoData.cliente_id) {
           shake();
           setInputState('invalid');
-          Alert.alert('Código já utilizado', 'Este código já foi usado, mas não foi possível encontrar os dados do cliente.');
+          showAlert('Código já utilizado', 'Este código já foi usado, mas não foi possível encontrar os dados do cliente.');
           setLoading(false);
           return;
         }
 
         // Buscar resultado do cliente
+        console.log('[Codigo] Buscando resultado para cliente:', codigoData.cliente_id);
         const { data: resultadoData, error: resultadoError } = await supabase
           .from('resultados')
           .select('id')
           .eq('cliente_id', codigoData.cliente_id)
           .single();
+        
+        console.log('[Codigo] Resultado encontrado:', { resultadoData, resultadoError });
+        
+        // Verificação adicional
+        if (!resultadoData || !resultadoData.id) {
+          console.log('[Codigo] Sem resultadoData.id');
+        }
 
         if (resultadoError || !resultadoData) {
           // Código usado mas sem resultado (teste em andamento)
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-          Alert.alert(
+          notificationWarning();
+          showAlert(
             'Teste em andamento',
             'Este código já foi utilizado, mas o teste ainda não foi concluído. Entre em contato com sua treinadora para mais informações.'
           );
@@ -128,28 +147,30 @@ export default function ClienteCodigoScreen() {
         }
 
         // Código usado com resultado disponível - redirecionar para resultado
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setInputState('valid');
+        console.log('[Codigo] Preparando redirecionamento...');
         
-        Alert.alert(
-          'Código já utilizado',
-          'Redirecionando para seu resultado...',
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                router.push({
-                  pathname: '/cliente/resultado',
-                  params: {
-                    clienteId: codigoData.cliente_id,
-                    resultadoId: resultadoData.id,
-                  },
-                });
-              },
-            },
-          ]
-        );
+        try {
+          notificationSuccess();
+        } catch (e) {
+          console.log('[Codigo] Haptics error (ignorado):', e);
+        }
+        
+        setInputState('valid');
         setLoading(false);
+        
+        console.log('[Codigo] Redirecionando direto para resultado:', {
+          clienteId: codigoData.cliente_id,
+          resultadoId: resultadoData.id,
+        });
+        
+        // Redirecionar direto sem Alert (Alert tem problemas no web)
+        router.push({
+          pathname: '/cliente/resultado',
+          params: {
+            clienteId: codigoData.cliente_id,
+            resultadoId: resultadoData.id,
+          },
+        });
         return;
       }
 
@@ -157,7 +178,7 @@ export default function ClienteCodigoScreen() {
       if (validoAte < new Date()) {
         shake();
         setInputState('invalid');
-        Alert.alert('Código expirado', 'Este código expirou. Solicite um novo código à sua treinadora.');
+        showAlert('Código expirado', 'Este código expirou. Solicite um novo código à sua treinadora.');
         setLoading(false);
         return;
       }
@@ -177,7 +198,7 @@ export default function ClienteCodigoScreen() {
           .maybeSingle();
 
         if (resultadoExistente) {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          notificationSuccess();
           setInputState('valid');
           router.push({
             pathname: '/cliente/resultado',
@@ -192,7 +213,7 @@ export default function ClienteCodigoScreen() {
       }
 
       // Código válido!
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      notificationSuccess();
       setInputState('valid');
       
       router.push({
@@ -206,7 +227,7 @@ export default function ClienteCodigoScreen() {
     } catch (error: any) {
       console.error('Erro ao validar código:', error);
       shake();
-      Alert.alert('Erro', 'Ocorreu um erro ao validar o código. Tente novamente.');
+      showAlert('Erro', 'Ocorreu um erro ao validar o código. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -238,10 +259,11 @@ export default function ClienteCodigoScreen() {
     <LinearGradient colors={[...COLORS.gradient]} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'web' ? undefined : (Platform.OS === 'ios' ? 'padding' : 'height')}
           style={styles.keyboardView}
         >
-          <View style={styles.content}>
+          <WebContent>
+            <View style={styles.content}>
             <Text style={styles.title}>Bem-vindo!</Text>
             <Text style={styles.subtitle}>
               Insira o código fornecido pela sua treinadora para iniciar sua jornada de autoconhecimento
@@ -325,7 +347,8 @@ export default function ClienteCodigoScreen() {
                 </Text>
               </Text>
             </View>
-          </View>
+            </View>
+          </WebContent>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </LinearGradient>

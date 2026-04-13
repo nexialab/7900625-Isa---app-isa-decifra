@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Animated, Dimensions, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Animated, Platform, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
+import { impactLight, impactMedium } from '@/utils/haptics';
 import { COLORS, COLORS_ARTIO, GRADIENTS, SHADOWS } from '@/constants/colors';
+import { WebContent } from '@/components/WebContent';
 
-const { width } = Dimensions.get('window');
+
 
 /**
  * Tela Inicial Ritualística - DECIFRA
@@ -75,17 +76,17 @@ export default function IndexScreen() {
   }, []);
 
   const handleTreinadora = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    impactMedium();
     router.push('/treinadora/login');
   };
 
   const handleCliente = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    impactMedium();
     router.push('/cliente/codigo');
   };
 
   const handleAdmin = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    impactLight();
     router.push('/(admin)/login');
   };
 
@@ -95,18 +96,24 @@ export default function IndexScreen() {
       style={styles.container}
     >
       <SafeAreaView style={styles.safeArea}>
-        <Animated.View 
-          style={[
-            styles.content,
-            {
-              opacity: fadeAnim,
-              transform: [
-                { translateY: slideAnim },
-                { scale: scaleAnim }
-              ],
-            }
-          ]}
-        >
+        <WebContent>
+          <Animated.View 
+            style={[
+              styles.content,
+              Platform.OS === 'web' && {
+                justifyContent: 'center',
+                paddingTop: 0,
+                paddingBottom: 0,
+              },
+              {
+                opacity: fadeAnim,
+                transform: [
+                  { translateY: slideAnim },
+                  { scale: scaleAnim }
+                ],
+              }
+            ]}
+          >
           {/* Logo Section */}
           <Animated.View 
             style={[
@@ -142,7 +149,7 @@ export default function IndexScreen() {
           {/* Buttons Section */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity
-              style={styles.buttonPrimary}
+              style={[styles.buttonPrimary, Platform.OS === 'web' && { cursor: 'pointer' }]}
               onPress={handleTreinadora}
               activeOpacity={0.8}
             >
@@ -157,7 +164,7 @@ export default function IndexScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.buttonSecondary}
+              style={[styles.buttonSecondary, Platform.OS === 'web' && { cursor: 'pointer' }]}
               onPress={handleCliente}
               activeOpacity={0.8}
             >
@@ -166,7 +173,7 @@ export default function IndexScreen() {
           </View>
 
           {/* Admin Access (dev mode) */}
-          <TouchableOpacity style={styles.adminButton} onPress={handleAdmin}>
+          <TouchableOpacity style={[styles.adminButton, Platform.OS === 'web' && { cursor: 'pointer' }]} onPress={handleAdmin}>
             <Text style={styles.adminText}>Acesso Admin</Text>
           </TouchableOpacity>
 
@@ -175,7 +182,8 @@ export default function IndexScreen() {
             <Text style={styles.footerBrand}>Ártio</Text>
             <Text style={styles.footerText}>Assessment de Personalidade</Text>
           </View>
-        </Animated.View>
+          </Animated.View>
+        </WebContent>
       </SafeAreaView>
     </LinearGradient>
   );

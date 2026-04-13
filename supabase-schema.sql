@@ -440,3 +440,98 @@ CREATE POLICY "Treinadoras podem atualizar codigos distribuidos"
 
 -- 4. Adicionar comentário explicativo na coluna
 COMMENT ON COLUMN codigos.distribuido IS 'Indica se a treinadora já resgatou/visualizou este código para distribuir a um cliente';
+
+-- ================================================
+-- CAMPO ENVIO EMAIL NA TABELA CODIGOS
+-- ================================================
+
+-- 1. Adicionar colunas para rastrear envio de código por email
+ALTER TABLE codigos
+  ADD COLUMN IF NOT EXISTS email_enviado TEXT,
+  ADD COLUMN IF NOT EXISTS nome_aluna TEXT,
+  ADD COLUMN IF NOT EXISTS data_envio_email TIMESTAMPTZ;
+
+-- 2. Adicionar índice para buscar códigos enviados por email
+CREATE INDEX IF NOT EXISTS idx_codigos_email_enviado ON codigos(email_enviado);
+
+-- 3. Comentários explicativos
+COMMENT ON COLUMN codigos.email_enviado IS 'Email da aluna para o qual o código foi enviado';
+COMMENT ON COLUMN codigos.nome_aluna IS 'Nome da aluna para a qual o código foi enviado';
+COMMENT ON COLUMN codigos.data_envio_email IS 'Data e hora do último envio do código por email';
+
+
+-- ================================================
+-- HISTÓRICO DE ENVIOS DE EMAIL (codigo_emails)
+-- ================================================
+
+-- 1. Criar tabela de envios de email
+CREATE TABLE IF NOT EXISTS codigo_emails (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  codigo_id UUID NOT NULL REFERENCES codigos(id) ON DELETE CASCADE,
+  treinadora_id UUID NOT NULL REFERENCES treinadoras(id) ON DELETE CASCADE,
+  email_destinatario TEXT NOT NULL,
+  nome_destinatario TEXT,
+  enviado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  message_id TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 2. Índices para performance
+CREATE INDEX IF NOT EXISTS idx_codigo_emails_codigo_id ON codigo_emails(codigo_id);
+CREATE INDEX IF NOT EXISTS idx_codigo_emails_treinadora_id ON codigo_emails(treinadora_id);
+CREATE INDEX IF NOT EXISTS idx_codigo_emails_enviado_em ON codigo_emails(enviado_em);
+CREATE INDEX IF NOT EXISTS idx_codigo_emails_codigo_enviado_em ON codigo_emails(codigo_id, enviado_em DESC);
+
+-- 3. Comentários
+COMMENT ON TABLE codigo_emails IS 'Historico de envios de email contendo codigos de acesso para alunas';
+
+-- 4. Habilitar RLS
+ALTER TABLE codigo_emails ENABLE ROW LEVEL SECURITY;
+
+-- 5. Políticas RLS
+CREATE POLICY "Treinadoras podem ver emails dos seus codigos"
+  ON codigo_emails FOR SELECT
+  USING (
+    treinadora_id IN (
+      SELECT id FROM treinadoras WHERE auth_user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Treinadoras podem registrar envio de email"
+  ON codigo_emails FOR INSERT
+  WITH CHECK (
+    treinadora_id IN (
+      SELECT id FROM treinadoras WHERE auth_user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Admins podem ver todos os codigo_emails"
+  ON codigo_emails FOR SELECT
+  USING (is_admin());
+
+-- 6. View para otimizar busca do ultimo email enviado por codigo
+CREATE OR REPLACE VIEW codigos_com_ultimo_email AS
+SELECT 
+  c.id,
+  c.codigo,
+  c.treinadora_id,
+  c.valido_ate,
+  c.usado,
+  c.cliente_id,
+  c.distribuido,
+  c.created_at,
+  e.email_destinatario AS ultimo_email_destinatario,
+  e.enviado_em AS ultimo_email_enviado_em
+FROM codigos c
+LEFT JOIN LATERAL (
+  SELECT ce.email_destinatario, ce.enviado_em
+  FROM codigo_emails ce
+  WHERE ce.codigo_id = c.id
+  ORDER BY ce.enviado_em DESC
+  LIMIT 1
+) e ON true;
+
+-- Garantir que a view respeite RLS do chamador (PostgreSQL 15+)
+ALTER VIEW codigos_com_ultimo_email SET (security_invoker = true);
+
+COMMENT ON VIEW codigos_com_ultimo_email IS 'Otimiza consultas que precisam exibir o ultimo email enviado para cada codigo';

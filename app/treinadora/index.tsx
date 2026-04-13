@@ -6,7 +6,6 @@ import { useState, useEffect, useCallback } from 'react';
     StyleSheet,
     SafeAreaView,
     ScrollView,
-    Alert,
     ActivityIndicator,
     RefreshControl,
   } from 'react-native';
@@ -16,6 +15,10 @@ import { useState, useEffect, useCallback } from 'react';
   import { supabase } from '@/lib/supabase/client';
   import { COLORS } from '@/constants/colors';
   import { useMeusCodigos } from '@/hooks/useMeusCodigos';
+  import { showAlert } from '@/utils/alert';
+import { WebContent } from '@/components/WebContent';
+  import { useEnviarCodigoPorEmail } from '@/hooks/useEnviarCodigoPorEmail';
+  import { EnviarEmailModal } from '@/components/EnviarEmailModal';
 
   interface Treinadora {
     id: string;
@@ -41,9 +44,15 @@ import { useState, useEffect, useCallback } from 'react';
     const [refreshing, setRefreshing] = useState(false);
     const [gerandoCodigo, setGerandoCodigo] = useState(false);
     const [ultimoCodigoGerado, setUltimoCodigoGerado] = useState<string | null>(null);
+    const [ultimoCodigoId, setUltimoCodigoId] = useState<string | null>(null);
     const [ultimoCodigoValidoAte, setUltimoCodigoValidoAte] = useState<string | null>(null);
+    const [ultimoCodigoValidoAteISO, setUltimoCodigoValidoAteISO] = useState<string | null>(null);
+    const [ultimoCodigoEmailEnviado, setUltimoCodigoEmailEnviado] = useState<string | null>(null);
+    const [ultimoCodigoNomeAluna, setUltimoCodigoNomeAluna] = useState<string | null>(null);
     const [codigoGeradoCopiado, setCodigoGeradoCopiado] = useState(false);
+    const [modalEmailVisible, setModalEmailVisible] = useState(false);
     const { data: meusCodigosData, refetch: refetchMeusCodigos } = useMeusCodigos(treinadora?.id);
+    const { mutate: enviarEmail, isPending: isEnviandoEmail } = useEnviarCodigoPorEmail();
 
     const copyToClipboard = async (text: string): Promise<boolean> => {
       try {
@@ -119,7 +128,7 @@ import { useState, useEffect, useCallback } from 'react';
                 }
               } else {
                 console.error('Erro ao criar treinadora:', criarError);
-                Alert.alert('Erro', 'Não foi possível criar seu perfil. Tente novamente.');
+                showAlert('Erro', 'Não foi possível criar seu perfil. Tente novamente.');
               }
               setLoading(false);
               return;
@@ -127,7 +136,7 @@ import { useState, useEffect, useCallback } from 'react';
 
             if (novaTreinadora) {
               setTreinadora(novaTreinadora);
-              Alert.alert(
+              showAlert(
                 'Bem-vinda!',
                 'Sua conta foi criada com sucesso!'
               );
@@ -135,7 +144,7 @@ import { useState, useEffect, useCallback } from 'react';
           }
         } else {
           console.error('Erro ao buscar treinadora:', treinadoraError);
-          Alert.alert('Erro', 'Não foi possível carregar seus dados');
+          showAlert('Erro', 'Não foi possível carregar seus dados');
           setLoading(false);
           return;
         }
@@ -162,7 +171,7 @@ import { useState, useEffect, useCallback } from 'react';
         }
       } catch (error: any) {
         console.error('Erro ao carregar dados:', error);
-        Alert.alert('Erro', 'Ocorreu um erro ao carregar os dados');
+        showAlert('Erro', 'Ocorreu um erro ao carregar os dados');
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -186,7 +195,7 @@ import { useState, useEffect, useCallback } from 'react';
       if (success) {
         setCodigoGeradoCopiado(true);
       } else {
-        Alert.alert('Erro', 'Nao foi possivel copiar o codigo. Tente novamente.');
+        showAlert('Erro', 'Nao foi possivel copiar o codigo. Tente novamente.');
       }
     };
 
@@ -195,7 +204,7 @@ import { useState, useEffect, useCallback } from 'react';
 
       const codigosDisponiveis = meusCodigosData?.total ?? 0;
       if (codigosDisponiveis <= 0) {
-        Alert.alert(
+        showAlert(
           'Sem códigos disponíveis',
           'Você não tem códigos disponíveis. Entre em contato com o administrador para adquirir mais códigos.',
           [{ text: 'OK' }]
@@ -210,7 +219,7 @@ import { useState, useEffect, useCallback } from 'react';
         const codigoParaDistribuir = meusCodigosData?.disponiveis[0];
         
         if (!codigoParaDistribuir) {
-          Alert.alert('Erro', 'Não foi possível encontrar um código disponível');
+          showAlert('Erro', 'Não foi possível encontrar um código disponível');
           setGerandoCodigo(false);
           return;
         }
@@ -223,7 +232,7 @@ import { useState, useEffect, useCallback } from 'react';
 
         if (updateError) {
           console.error('Erro ao distribuir código:', updateError);
-          Alert.alert('Erro', 'Não foi possível resgatar o código');
+          showAlert('Erro', 'Não foi possível resgatar o código');
           setGerandoCodigo(false);
           return;
         }
@@ -231,24 +240,58 @@ import { useState, useEffect, useCallback } from 'react';
         // ATUALIZA A LISTA E MOSTRA O CÓDIGO
         await refetchMeusCodigos();
         setUltimoCodigoGerado(codigoParaDistribuir.codigo);
+        setUltimoCodigoId(codigoParaDistribuir.id);
         setUltimoCodigoValidoAte(new Date(codigoParaDistribuir.validoAte).toLocaleDateString('pt-BR'));
+        setUltimoCodigoValidoAteISO(codigoParaDistribuir.validoAte);
+        setUltimoCodigoEmailEnviado(null);
+        setUltimoCodigoNomeAluna(null);
         setCodigoGeradoCopiado(false);
 
-        Alert.alert(
+        showAlert(
           'Código resgatado!',
           `Código: ${codigoParaDistribuir.codigo}\n\nVálido até: ${new Date(codigoParaDistribuir.validoAte).toLocaleDateString('pt-BR')}\n\nUse o cartão abaixo para copiar e compartilhar com seu cliente.`,
           [{ text: 'OK' }]
         );
       } catch (error: any) {
         console.error('Erro ao resgatar código:', error);
-        Alert.alert('Erro', 'Ocorreu um erro ao resgatar o código');
+        showAlert('Erro', 'Ocorreu um erro ao resgatar o código');
       } finally {
         setGerandoCodigo(false);
       }
     };
 
+    const abrirModalEmail = () => {
+      if (!ultimoCodigoGerado || !ultimoCodigoId) return;
+      setModalEmailVisible(true);
+    };
+
+    const handleEnviarEmail = (email: string, nomeAluna: string) => {
+      if (!ultimoCodigoId || !ultimoCodigoGerado) return;
+
+      enviarEmail(
+        {
+          codigoId: ultimoCodigoId,
+          codigo: ultimoCodigoGerado,
+          emailDestinatario: email,
+          nomeDestinatario: nomeAluna,
+          validoAte: ultimoCodigoValidoAteISO || undefined,
+        },
+        {
+          onSuccess: (res) => {
+            setUltimoCodigoEmailEnviado(email);
+            setUltimoCodigoNomeAluna(nomeAluna || null);
+            setModalEmailVisible(false);
+            showAlert('Sucesso', res.message || 'Código enviado com sucesso!');
+          },
+          onError: (err) => {
+            showAlert('Erro', err.message || 'Não foi possível enviar o código');
+          },
+        }
+      );
+    };
+
     const handleLogout = async () => {
-      Alert.alert(
+      showAlert(
         'Sair',
         'Tem certeza que deseja sair?',
         [
@@ -300,16 +343,21 @@ import { useState, useEffect, useCallback } from 'react';
 
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.headerTitle}>Olá, {treinadora.nome}!</Text>
-            <Text style={styles.headerSubtitle}>{treinadora.email}</Text>
-          </View>
-          <TouchableOpacity onPress={handleLogout}>
-            <Text style={styles.logoutText}>Sair</Text>
-          </TouchableOpacity>
+        <View style={styles.headerFullWidth}>
+          <WebContent>
+            <View style={styles.header}>
+              <View>
+                <Text style={styles.headerTitle}>Olá, {treinadora.nome}!</Text>
+                <Text style={styles.headerSubtitle}>{treinadora.email}</Text>
+              </View>
+              <TouchableOpacity onPress={handleLogout}>
+                <Text style={styles.logoutText}>Sair</Text>
+              </TouchableOpacity>
+            </View>
+          </WebContent>
         </View>
 
+        <WebContent>
         <ScrollView
           style={styles.content}
           refreshControl={
@@ -342,6 +390,14 @@ import { useState, useEffect, useCallback } from 'react';
                 Valido ate: {ultimoCodigoValidoAte}
               </Text>
 
+              {ultimoCodigoEmailEnviado ? (
+                <View style={styles.emailEnviadoBadge}>
+                  <Text style={styles.emailEnviadoText}>
+                    Enviado para: {ultimoCodigoEmailEnviado}
+                  </Text>
+                </View>
+              ) : null}
+
               <TouchableOpacity
                 style={[
                   styles.codigoGeradoCopyButton,
@@ -353,8 +409,35 @@ import { useState, useEffect, useCallback } from 'react';
                   {codigoGeradoCopiado ? 'Copiado!' : 'Copiar Codigo'}
                 </Text>
               </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.enviarEmailButton,
+                  ultimoCodigoEmailEnviado ? styles.reenviarEmailButton : null,
+                ]}
+                onPress={abrirModalEmail}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.enviarEmailButtonText}>
+                  {ultimoCodigoEmailEnviado
+                    ? 'Reenviar Código por Email'
+                    : 'Enviar por Email'}
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
+
+          <EnviarEmailModal
+            visible={modalEmailVisible}
+            onClose={() => setModalEmailVisible(false)}
+            onEnviar={handleEnviarEmail}
+            codigo={ultimoCodigoGerado || ''}
+            emailInicial={ultimoCodigoEmailEnviado}
+            nomeAlunaInicial={ultimoCodigoNomeAluna}
+            isLoading={isEnviandoEmail}
+            titulo={ultimoCodigoEmailEnviado ? 'Reenviar código por email' : 'Enviar código por email'}
+            botaoTexto={ultimoCodigoEmailEnviado ? 'Reenviar Código' : 'Enviar Código'}
+          />
 
           {/* NOVO: Botão Meus Códigos */}
           <TouchableOpacity
@@ -412,8 +495,9 @@ import { useState, useEffect, useCallback } from 'react';
                 </TouchableOpacity>
               ))
             )}
-          </View>
-        </ScrollView>
+            </View>
+          </ScrollView>
+        </WebContent>
       </SafeAreaView>
     );
   }
@@ -441,15 +525,18 @@ import { useState, useEffect, useCallback } from 'react';
       color: COLORS.error,
       marginBottom: 16,
     },
+    headerFullWidth: {
+      width: '100%',
+      backgroundColor: COLORS.dark2,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.cardBorder,
+    },
     header: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
       paddingHorizontal: 24,
       paddingVertical: 16,
-      backgroundColor: COLORS.dark2,
-      borderBottomWidth: 1,
-      borderBottomColor: COLORS.cardBorder,
     },
     headerTitle: {
       fontSize: 24,
@@ -558,6 +645,39 @@ import { useState, useEffect, useCallback } from 'react';
     },
     codigoGeradoCopyButtonText: {
       color: COLORS.cream,
+      fontSize: 15,
+      fontWeight: '700' as const,
+    },
+    emailEnviadoBadge: {
+      backgroundColor: 'rgba(76, 175, 80, 0.15)',
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      marginBottom: 12,
+      alignSelf: 'flex-start',
+      borderWidth: 1,
+      borderColor: 'rgba(76, 175, 80, 0.3)',
+    },
+    emailEnviadoText: {
+      color: COLORS.success,
+      fontSize: 13,
+      fontWeight: '600' as const,
+    },
+    enviarEmailButton: {
+      backgroundColor: COLORS.dark2,
+      borderRadius: 12,
+      paddingVertical: 12,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: COLORS.accent,
+      marginTop: 10,
+    },
+    reenviarEmailButton: {
+      backgroundColor: 'transparent',
+      borderColor: COLORS.cardBorder,
+    },
+    enviarEmailButtonText: {
+      color: COLORS.accent,
       fontSize: 15,
       fontWeight: '700' as const,
     },

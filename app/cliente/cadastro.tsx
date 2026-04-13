@@ -8,7 +8,6 @@ import { useState } from 'react';
     SafeAreaView,
     KeyboardAvoidingView,
     Platform,
-    Alert,
     ActivityIndicator,
     ScrollView,
   } from 'react-native';
@@ -17,6 +16,8 @@ import { useState } from 'react';
   import { supabase } from '@/lib/supabase/client';
   import AsyncStorage from '@react-native-async-storage/async-storage';
   import { COLORS } from '@/constants/colors';
+import { WebContent } from '@/components/WebContent';
+  import { showAlert } from '@/utils/alert';
 
   export default function ClienteCadastroScreen() {
     const router = useRouter();
@@ -30,7 +31,7 @@ import { useState } from 'react';
 
     const handleCadastro = async () => {
       if (!nome.trim()) {
-        Alert.alert('Erro', 'Por favor, informe seu nome');
+        showAlert('Erro', 'Por favor, informe seu nome');
         return;
       }
 
@@ -39,51 +40,42 @@ import { useState } from 'react';
       setLoading(true);
 
       try {
-        const { data: clienteData, error: clienteError } = await supabase
-          .from('clientes')
-          .insert({
+        const { data, error } = await supabase.functions.invoke<{ success: boolean; cliente: { id: string } }>('cadastrar-cliente', {
+          body: {
             nome: nome.trim(),
             email: emailValue,
-            codigo_id: codigoId,
-            treinadora_id: treinadoraId,
-            status: 'ativo',
-          })
-          .select()
-          .single();
+            codigoId,
+            treinadoraId,
+          },
+        });
 
-        if (clienteError || !clienteData) {
-          console.error('Erro ao criar cliente:', clienteError);
-          Alert.alert('Erro', 'Não foi possível criar seu cadastro');
+        if (error) {
+          const httpError = error as any;
+          const context = httpError?.context;
+          const errorMessage = context?.error || context?.message || error.message || 'Erro ao criar cadastro';
+          console.error('Erro ao criar cliente:', errorMessage);
+          showAlert('Erro', errorMessage);
           setLoading(false);
           return;
         }
 
-        const { error: codigoUpdateError } = await supabase
-          .from('codigos')
-          .update({
-            usado: true,
-            cliente_id: clienteData.id,
-          })
-          .eq('id', codigoId);
-
-        if (codigoUpdateError) {
-          console.error('Erro ao atualizar código:', codigoUpdateError);
-          Alert.alert('Erro', 'Não foi possível ativar seu código. Tente novamente.');
+        if (!data?.cliente?.id) {
+          showAlert('Erro', 'Não foi possível criar seu cadastro');
           setLoading(false);
           return;
         }
 
-        await AsyncStorage.setItem('clienteId', clienteData.id);
+        await AsyncStorage.setItem('clienteId', data.cliente.id);
 
         router.replace({
           pathname: '/cliente/instrucoes',
           params: {
-            clienteId: clienteData.id,
+            clienteId: data.cliente.id,
           },
         });
       } catch (error: any) {
         console.error('Erro ao cadastrar cliente:', error);
-        Alert.alert('Erro', 'Ocorreu um erro ao criar seu cadastro');
+        showAlert('Erro', error.message || 'Ocorreu um erro ao criar seu cadastro');
       } finally {
         setLoading(false);
       }
@@ -93,14 +85,15 @@ import { useState } from 'react';
       <LinearGradient colors={[...COLORS.gradient]} style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior={Platform.OS === 'web' ? undefined : (Platform.OS === 'ios' ? 'padding' : 'height')}
             style={styles.keyboardView}
           >
             <ScrollView
               contentContainerStyle={styles.scrollContent}
               keyboardShouldPersistTaps="handled"
             >
-              <View style={styles.content}>
+              <WebContent>
+                <View style={styles.content}>
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>Código: {codigo}</Text>
                 </View>
@@ -162,7 +155,8 @@ import { useState } from 'react';
                     Seus dados são privados e serão compartilhados apenas com sua treinadora
                   </Text>
                 </View>
-              </View>
+                </View>
+              </WebContent>
             </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>

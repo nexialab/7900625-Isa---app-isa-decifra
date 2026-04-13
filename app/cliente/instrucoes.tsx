@@ -9,6 +9,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '@/constants/colors';
+import { WebContent } from '@/components/WebContent';
 
 export default function ClienteInstrucoesScreen() {
   const router = useRouter();
@@ -30,7 +31,8 @@ export default function ClienteInstrucoesScreen() {
     <LinearGradient colors={[...COLORS.gradient]} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.content}>
+          <WebContent>
+            <View style={styles.content}>
             <Text style={styles.title}>
               {"Teste de Personalidade\nIPIP-NEO-120"}
             </Text>
@@ -77,7 +79,8 @@ export default function ClienteInstrucoesScreen() {
             <Text style={styles.footer}>
               Suas respostas são salvas automaticamente após cada estação
             </Text>
-          </View>
+            </View>
+          </WebContent>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>

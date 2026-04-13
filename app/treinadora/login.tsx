@@ -8,13 +8,14 @@ import { useState } from 'react';
     SafeAreaView,
     KeyboardAvoidingView,
     Platform,
-    Alert,
     ActivityIndicator,
   } from 'react-native';
   import { useRouter } from 'expo-router';
   import { LinearGradient } from 'expo-linear-gradient';
   import { useAuth } from '@/lib/supabase/useAuth';
   import { COLORS } from '@/constants/colors';
+  import { showAlert } from '@/utils/alert';
+import { WebContent } from '@/components/WebContent';
 
   export default function TreinadoraLoginScreen() {
     const router = useRouter();
@@ -26,7 +27,7 @@ import { useState } from 'react';
 
     const handleLogin = async () => {
       if (!email || !password) {
-        Alert.alert('Erro', 'Por favor, preencha todos os campos');
+        showAlert('Erro', 'Por favor, preencha todos os campos');
         return;
       }
 
@@ -35,7 +36,7 @@ import { useState } from 'react';
       setLoading(false);
 
       if (error) {
-        Alert.alert('Erro ao fazer login', error.message);
+        showAlert('Erro ao fazer login', error.message);
       } else {
         router.replace('/treinadora');
       }
@@ -45,10 +46,11 @@ import { useState } from 'react';
       <LinearGradient colors={[...COLORS.gradient]} style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior={Platform.OS === 'web' ? undefined : (Platform.OS === 'ios' ? 'padding' : 'height')}
             style={styles.keyboardView}
           >
-            <View style={styles.content}>
+            <WebContent>
+              <View style={styles.content}>
               <Text style={styles.title}>Login Treinadora</Text>
               <Text style={styles.subtitle}>
                 Acesse sua conta para gerenciar clientes e códigos
@@ -111,7 +113,8 @@ import { useState } from 'react';
                   <Text style={styles.backText}>← Voltar</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+              </View>
+            </WebContent>
           </KeyboardAvoidingView>
         </SafeAreaView>
       </LinearGradient>

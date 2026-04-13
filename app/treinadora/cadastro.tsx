@@ -8,7 +8,6 @@ import { useState } from 'react';
     SafeAreaView,
     KeyboardAvoidingView,
     Platform,
-    Alert,
     ActivityIndicator,
     ScrollView,
   } from 'react-native';
@@ -17,6 +16,8 @@ import { useState } from 'react';
   import { useAuth } from '@/lib/supabase/useAuth';
   import { supabase } from '@/lib/supabase/client';
   import { COLORS } from '@/constants/colors';
+  import { showAlert } from '@/utils/alert';
+import { WebContent } from '@/components/WebContent';
 
   export default function TreinadoraCadastroScreen() {
     const router = useRouter();
@@ -30,17 +31,17 @@ import { useState } from 'react';
 
     const handleCadastro = async () => {
       if (!nome || !email || !password || !confirmPassword) {
-        Alert.alert('Erro', 'Por favor, preencha todos os campos');
+        showAlert('Erro', 'Por favor, preencha todos os campos');
         return;
       }
 
       if (password !== confirmPassword) {
-        Alert.alert('Erro', 'As senhas não coincidem');
+        showAlert('Erro', 'As senhas não coincidem');
         return;
       }
 
       if (password.length < 6) {
-        Alert.alert('Erro', 'A senha deve ter no mínimo 6 caracteres');
+        showAlert('Erro', 'A senha deve ter no mínimo 6 caracteres');
         return;
       }
 
@@ -50,7 +51,7 @@ import { useState } from 'react';
         const { data, error } = await signUp(email, password, nome);
         
         if (error) {
-          Alert.alert('Erro ao criar conta', error.message);
+          showAlert('Erro ao criar conta', error.message);
           setLoading(false);
           return;
         }
@@ -66,12 +67,12 @@ import { useState } from 'react';
 
           if (dbError) {
             console.error('Erro ao criar registro de treinadora:', dbError);
-            Alert.alert(
+            showAlert(
               'Conta criada',
               'Sua conta foi criada com sucesso! Faça login para continuar.'
             );
           } else {
-            Alert.alert(
+            showAlert(
               'Conta criada com sucesso!',
               'Agora você tem acesso ao sistema. Faça login para começar.',
               [{ text: 'OK', onPress: () => router.replace('/treinadora/login') }]
@@ -79,7 +80,7 @@ import { useState } from 'react';
           }
         }
       } catch (error: any) {
-        Alert.alert('Erro', error.message);
+        showAlert('Erro', error.message);
       } finally {
         setLoading(false);
       }
@@ -89,14 +90,15 @@ import { useState } from 'react';
       <LinearGradient colors={[...COLORS.gradient]} style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior={Platform.OS === 'web' ? undefined : (Platform.OS === 'ios' ? 'padding' : 'height')}
             style={styles.keyboardView}
           >
             <ScrollView
               contentContainerStyle={styles.scrollContent}
               keyboardShouldPersistTaps="handled"
             >
-              <View style={styles.content}>
+              <WebContent>
+                <View style={styles.content}>
                 <Text style={styles.title}>Cadastro Treinadora</Text>
                 <Text style={styles.subtitle}>
                   Crie sua conta para começar
@@ -170,7 +172,8 @@ import { useState } from 'react';
                     </Text>
                   </TouchableOpacity>
                 </View>
-              </View>
+                </View>
+              </WebContent>
             </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>

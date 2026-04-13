@@ -9,7 +9,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
+import { impactMedium, notificationSuccess } from '@/utils/haptics';
 import { supabase } from '@/lib/supabase/client';
 import { calcularResultado } from '@/utils/calculadora';
 import {
@@ -19,6 +19,8 @@ import {
 import { MandalaAnimada } from '@/components/MandalaAnimada';
 import { COLORS } from '@/constants/colors';
 import { GRADIENTS } from '@/constants/colors-artio';
+import { useNotificarTesteFinalizado } from '@/hooks/useNotificarTesteFinalizado';
+import { WebContent } from '@/components/WebContent';
 
 // Mensagens que aparecem durante o processamento
 const MENSAGENS_PROCESSAMENTO = [
@@ -46,10 +48,11 @@ export default function ClienteProcessandoScreen() {
   ]);
   const [processando, setProcessando] = useState(true);
   const [showMandala, setShowMandala] = useState(false);
+  const { mutate: notificarTreinadora } = useNotificarTesteFinalizado();
 
   useEffect(() => {
     // Haptic de início
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    impactMedium();
     processarResultados();
   }, []);
 
@@ -149,12 +152,27 @@ export default function ClienteProcessandoScreen() {
         console.warn('Nenhuma recomendação de cliente foi gerada para o resultado atual.');
       }
 
+      // Notificar treinadora por email (fire-and-forget)
+      if (clienteId) {
+        notificarTreinadora(
+          { clienteId: clienteId as string },
+          {
+            onSuccess: (data) => {
+              console.log('[Processando] Notificação enviada:', data);
+            },
+            onError: (err) => {
+              console.error('[Processando] Erro ao notificar treinadora:', err);
+            },
+          }
+        );
+      }
+
       // Finalizar
       setProgresso(100);
       setProcessando(false);
       
       // Haptic de sucesso
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      notificationSuccess();
       
       // Esperar e navegar
       setTimeout(() => {
@@ -189,7 +207,7 @@ export default function ClienteProcessandoScreen() {
     setTimeout(() => {
       setProgresso(100);
       setProcessando(false);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      notificationSuccess();
       
       setTimeout(() => {
         router.replace({
@@ -205,7 +223,8 @@ export default function ClienteProcessandoScreen() {
   return (
     <LinearGradient colors={GRADIENTS.splash} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.content}>
+        <WebContent>
+          <View style={styles.content}>
           {/* Título */}
           <Text style={styles.title}>Processando seu perfil</Text>
           
@@ -248,7 +267,8 @@ export default function ClienteProcessandoScreen() {
               Estamos processando suas 120 respostas para criar um mapa único da sua personalidade.
             </Text>
           </View>
-        </View>
+          </View>
+        </WebContent>
       </SafeAreaView>
     </LinearGradient>
   );

@@ -14,6 +14,7 @@ import { ProtocoloCard } from '@/components/ProtocoloCard';
 import { PROTOCOLOS, type Protocolo } from '@/constants/protocolos';
 import { supabase } from '@/lib/supabase/client';
 import { COLORS } from '@/constants/colors';
+import { WebContent } from '@/components/WebContent';
 import { GRADIENTS, COLORS_ARTIO } from '@/constants/colors-artio';
 
 interface ProtocoloRecomendado {
@@ -112,7 +113,8 @@ export default function ClienteProtocolosScreen() {
   return (
     <LinearGradient colors={GRADIENTS.splash} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.header}>
+        <WebContent>
+          <View style={styles.header}>
           <TouchableOpacity onPress={handleVoltar} style={styles.backButton}>
             <Text style={styles.backText}>← Voltar</Text>
           </TouchableOpacity>
@@ -171,8 +173,9 @@ export default function ClienteProtocolosScreen() {
             </LinearGradient>
           </TouchableOpacity>
 
-          <View style={styles.espacoFinal} />
-        </ScrollView>
+            <View style={styles.espacoFinal} />
+          </ScrollView>
+        </WebContent>
       </SafeAreaView>
     </LinearGradient>
   );

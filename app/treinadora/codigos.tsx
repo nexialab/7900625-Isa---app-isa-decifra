@@ -6,19 +6,22 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
-  Alert,
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
+import { WebContent } from '@/components/WebContent';
+import { showAlert } from '@/utils/alert';
+import { notificationSuccess } from '@/utils/haptics';
 import { useAuth } from '@/lib/supabase/useAuth';
 import { supabase } from '@/lib/supabase/client';
 import { COLORS_ARTIO, GRADIENTS } from '@/constants/colors-artio';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { useMeusCodigos } from '@/hooks/useMeusCodigos';
+import { useEnviarCodigoPorEmail } from '@/hooks/useEnviarCodigoPorEmail';
+import { EnviarEmailModal } from '@/components/EnviarEmailModal';
 
 // Helper para copiar usando expo-clipboard
 const copyToClipboard = async (text: string): Promise<boolean> => {
@@ -39,11 +42,14 @@ export default function MeusCodigosScreen() {
   const [isBuscandoTreinadora, setIsBuscandoTreinadora] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [copiado, setCopiado] = useState<string | null>(null);
+  const [modalEmailVisible, setModalEmailVisible] = useState(false);
+  const [codigoSelecionado, setCodigoSelecionado] = useState<{ id: string; codigo: string; validoAte?: string; emailEnviado?: string | null; nomeAluna?: string | null } | null>(null);
   const {
     data: meusCodigosData,
     isLoading: isLoadingCodigos,
     refetch: refetchCodigos,
   } = useMeusCodigos(treinadoraId ?? undefined);
+  const { mutate: enviarEmail, isPending: isEnviandoEmail } = useEnviarCodigoPorEmail();
 
   const codigos = meusCodigosData?.disponiveis ?? [];
   const isLoading = isBuscandoTreinadora || isLoadingCodigos;
@@ -84,16 +90,45 @@ export default function MeusCodigosScreen() {
     setRefreshing(false);
   };
 
+  const abrirModalEmail = (item: { id: string; codigo: string; validoAte?: string; emailEnviado?: string | null; nomeAluna?: string | null }) => {
+    setCodigoSelecionado(item);
+    setModalEmailVisible(true);
+  };
+
+  const handleEnviarEmail = (email: string, nomeAluna: string) => {
+    if (!codigoSelecionado) return;
+
+    enviarEmail(
+      {
+        codigoId: codigoSelecionado.id,
+        codigo: codigoSelecionado.codigo,
+        emailDestinatario: email,
+        nomeDestinatario: nomeAluna,
+        validoAte: codigoSelecionado.validoAte,
+      },
+      {
+        onSuccess: (res) => {
+          setModalEmailVisible(false);
+          setCodigoSelecionado(null);
+          showAlert('Sucesso', res.message || 'Código enviado com sucesso!');
+        },
+        onError: (err) => {
+          showAlert('Erro', err.message || 'Não foi possível enviar o código');
+        },
+      }
+    );
+  };
+
   const copiarCodigo = async (codigo: string) => {
     const success = await copyToClipboard(codigo);
     
     if (success) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      notificationSuccess();
       setCopiado(codigo);
       setTimeout(() => setCopiado(null), 2000);
     } else {
       // Fallback: mostra o código em um Alert
-      Alert.alert(
+      showAlert(
         '📋 Código para Copiar',
         `Código: ${codigo}`,
         [{ text: 'OK' }]
@@ -108,10 +143,10 @@ export default function MeusCodigosScreen() {
     const success = await copyToClipboard(todos);
     
     if (success) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('✅ Copiado!', `${codigos.length} códigos copiados para a área de transferência`);
+      notificationSuccess();
+      showAlert('✅ Copiado!', `${codigos.length} códigos copiados para a área de transferência`);
     } else {
-      Alert.alert(
+      showAlert(
         '📋 Códigos para Copiar',
         `Seus códigos:\n\n${todos}`,
         [{ text: 'OK' }]
@@ -147,6 +182,7 @@ export default function MeusCodigosScreen() {
   return (
     <LinearGradient colors={[...GRADIENTS.primary]} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
+        <WebContent>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerTop}>
@@ -212,6 +248,15 @@ export default function MeusCodigosScreen() {
                 </View>
               </View>
 
+              {item.emailEnviado ? (
+                <View style={styles.emailEnviadoBadge}>
+                  <Ionicons name="mail" size={14} color={COLORS_ARTIO.success} />
+                  <Text style={styles.emailEnviadoText}>
+                    Enviado para: {item.emailEnviado}
+                  </Text>
+                </View>
+              ) : null}
+
               <TouchableOpacity
                 style={[
                   styles.copyButton,
@@ -228,6 +273,25 @@ export default function MeusCodigosScreen() {
                 />
                 <Text style={styles.copyButtonText}>
                   {copiado === item.codigo ? 'Copiado!' : 'Copiar Código'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.enviarEmailButton,
+                  item.emailEnviado ? styles.reenviarEmailButton : null,
+                ]}
+                onPress={() => abrirModalEmail(item)}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name="mail"
+                  size={18}
+                  color={item.emailEnviado ? COLORS_ARTIO.cream : COLORS_ARTIO.creamLight}
+                  style={styles.enviarEmailIcon}
+                />
+                <Text style={item.emailEnviado ? styles.reenviarEmailButtonText : styles.enviarEmailButtonText}>
+                  {item.emailEnviado ? 'Reenviar Código por Email' : 'Enviar por Email'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -247,7 +311,7 @@ export default function MeusCodigosScreen() {
                 style={styles.comprarButton}
                 onPress={() => {
                   // Navegar para loja Hotmart ou mostrar instruções
-                  Alert.alert(
+                  showAlert(
                     'Comprar Códigos',
                     'Acesse nossa página na Hotmart para adquirir mais códigos DECIFRA.',
                     [
@@ -281,6 +345,21 @@ export default function MeusCodigosScreen() {
             </TouchableOpacity>
           )}
 
+          <EnviarEmailModal
+            visible={modalEmailVisible}
+            onClose={() => {
+              setModalEmailVisible(false);
+              setCodigoSelecionado(null);
+            }}
+            onEnviar={handleEnviarEmail}
+            codigo={codigoSelecionado?.codigo || ''}
+            emailInicial={codigoSelecionado?.emailEnviado}
+            nomeAlunaInicial={codigoSelecionado?.nomeAluna}
+            isLoading={isEnviandoEmail}
+            titulo={codigoSelecionado?.emailEnviado ? 'Reenviar código por email' : 'Enviar código por email'}
+            botaoTexto={codigoSelecionado?.emailEnviado ? 'Reenviar Código' : 'Enviar Código'}
+          />
+
           <View style={styles.footer}>
             <Ionicons 
               name="information-circle-outline" 
@@ -294,6 +373,7 @@ export default function MeusCodigosScreen() {
             </Text>
           </View>
         </ScrollView>
+        </WebContent>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -433,6 +513,54 @@ const styles = StyleSheet.create({
   copyButtonText: {
     color: COLORS_ARTIO.creamLight,
     fontSize: 16,
+    fontWeight: '600',
+  },
+
+  emailEnviadoBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(76, 175, 80, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 6,
+    marginBottom: 12,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: 'rgba(76, 175, 80, 0.3)',
+  },
+  emailEnviadoText: {
+    color: COLORS_ARTIO.success,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  enviarEmailButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: COLORS_ARTIO.terracota,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 10,
+  },
+  reenviarEmailButton: {
+    borderColor: COLORS_ARTIO.borderLight,
+  },
+  enviarEmailIcon: {
+    marginRight: 4,
+  },
+  enviarEmailButtonText: {
+    color: COLORS_ARTIO.creamLight,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  reenviarEmailButtonText: {
+    color: COLORS_ARTIO.cream,
+    fontSize: 15,
     fontWeight: '600',
   },
 

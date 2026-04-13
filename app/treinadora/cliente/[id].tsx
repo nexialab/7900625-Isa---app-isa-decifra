@@ -6,7 +6,6 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -20,6 +19,8 @@ import type { FatorKey } from '@/constants/ipip';
   import { recomendarProtocolosTreinadora } from '@/utils/recomendacao';
   import { COLORS } from '@/constants/colors';
   import { gerarPDF } from '@/utils/pdfGenerator';
+  import { showAlert } from '@/utils/alert';
+import { WebContent } from '@/components/WebContent';
   import { ProtocoloCard } from '@/components/ProtocoloCard';
 
 interface Resultado {
@@ -85,7 +86,7 @@ export default function TreinadoraClienteResultadoScreen() {
 
       if (clienteError || !clienteData) {
         console.error('Erro ao buscar cliente:', clienteError);
-        Alert.alert('Erro', 'Cliente não encontrado');
+        showAlert('Erro', 'Cliente não encontrado');
         setLoading(false);
         return;
       }
@@ -159,7 +160,7 @@ export default function TreinadoraClienteResultadoScreen() {
       }
     } catch (error: any) {
       console.error('Erro ao carregar dados:', error);
-      Alert.alert('Erro', 'Ocorreu um erro ao carregar os dados');
+      showAlert('Erro', 'Ocorreu um erro ao carregar os dados');
     } finally {
       setLoading(false);
     }
@@ -189,7 +190,7 @@ export default function TreinadoraClienteResultadoScreen() {
       });
     } catch (error: any) {
       console.error('Erro ao gerar PDF:', error);
-      Alert.alert('Erro', 'Não foi possível gerar o PDF. Tente novamente.');
+      showAlert('Erro', 'Não foi possível gerar o PDF. Tente novamente.');
     } finally {
       setGerandoPDF(false);
     }
@@ -264,7 +265,8 @@ export default function TreinadoraClienteResultadoScreen() {
   return (
     <LinearGradient colors={[...COLORS.gradient]} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView style={styles.scrollView}>
+        <WebContent>
+          <ScrollView style={styles.scrollView}>
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={handleVoltar} style={styles.backButton}>
@@ -461,8 +463,9 @@ export default function TreinadoraClienteResultadoScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.espacoFinal} />
-        </ScrollView>
+            <View style={styles.espacoFinal} />
+          </ScrollView>
+        </WebContent>
       </SafeAreaView>
     </LinearGradient>
   );

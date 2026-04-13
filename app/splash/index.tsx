@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
-import { View, StyleSheet, Animated, Dimensions } from 'react-native';
+import { View, StyleSheet, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, COLORS_ARTIO, GRADIENTS } from '@/constants/colors';
-
-const { width, height } = Dimensions.get('window');
+import { WebContent } from '@/components/WebContent';
 
 /**
  * Tela de Splash Animada - DECIFRA
@@ -118,7 +117,8 @@ export default function SplashScreen() {
       colors={[...GRADIENTS.splash]}
       style={styles.container}
     >
-      <View style={styles.content}>
+      <WebContent>
+        <View style={styles.content}>
         {/* Glow effect behind icon */}
         <Animated.View
           style={[
@@ -167,7 +167,8 @@ export default function SplashScreen() {
             Arquitetura Emocional
           </Animated.Text>
         </Animated.View>
-      </View>
+        </View>
+      </WebContent>
 
       {/* Loading indicator at bottom */}
       <Animated.View
