@@ -25,6 +25,7 @@ export interface TreinadoraAdmin {
   nome: string;
   email: string;
   whatsapp: string | null;
+  creditos: number;
   totalCodigos: number;
   totalClientes: number;
   created_at: string;
