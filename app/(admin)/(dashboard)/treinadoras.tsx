@@ -21,9 +21,6 @@ import type { TreinadoraAdmin } from '@/types/admin';
 import { showAlert } from '@/utils/alert';
 import { WebContent } from '@/components/WebContent';
 
-// Chave secreta para a Edge Function (deve ser a mesma configurada no Supabase)
-const ADMIN_SECRET = 'decifra-admin-secret-2024';
-
 // Cores específicas do admin
 const ADMIN_COLORS = {
   background: '#2D1518',
@@ -400,21 +397,25 @@ export default function TreinadorasScreen() {
     setIsSubmitting(true);
     
     try {
-      // Usar a Edge Function para criar treinadora com email confirmado
+      // Edge Function autentica via JWT do admin logado e verifica is_admin
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Sessão expirada. Faça login novamente.');
+      }
+
       const response = await fetch(
         `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/criar-treinadora-admin`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+            'Authorization': `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
             nome: novaTreinadora.nome.trim(),
             email: emailLimpo,
             whatsapp: whatsappFormatado,
             senha: senha,
-            secret: ADMIN_SECRET,
           }),
         }
       );
