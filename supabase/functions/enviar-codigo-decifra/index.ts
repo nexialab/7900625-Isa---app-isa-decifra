@@ -72,7 +72,7 @@ function buildHtmlTemplate(params: {
           <tr>
             <td style="background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:32px 24px;text-align:center;">
               <h1 style="color:#ffffff;margin:0;font-size:22px;line-height:1.3;">Decifra</h1>
-              <p style="color:#e0e7ff;margin:8px 0 0;font-size:14px;">Código de acesso da sua aluna</p>
+              <p style="color:#e0e7ff;margin:8px 0 0;font-size:14px;">Código de acesso do seu cliente</p>
             </td>
           </tr>
           <tr>

@@ -202,7 +202,11 @@ export class TemplateEngine {
 
     return {
       cliente: {
-        nome: cliente.nome,
+        // Fallback defensivo: clientes legados foram criados com nome NULL.
+        // SELECT('*') em pdf-service/src/services/supabase.ts:55 já puxa nome,
+        // então o fallback só dispara se a coluna estiver vazia no DB.
+        // TODO: investigar fluxo de cadastro que permite nome NULL (issue #10).
+        nome: cliente.nome ?? cliente.email ?? 'Cliente',
         email: cliente.email,
         dataAvaliacao: resultado.created_at
       },

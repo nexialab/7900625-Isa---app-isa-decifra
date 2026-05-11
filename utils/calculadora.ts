@@ -1,4 +1,4 @@
-import { QUESTAO_FACETA_MAP, QUESTOES_INVERTIDAS, FACETAS, FATORES } from '@/constants/ipip';
+import { QUESTAO_FACETA_MAP, QUESTOES_INVERTIDAS } from '@/constants/ipip';
   import type { FacetaKey, FatorKey } from '@/constants/ipip';
 
   export interface Resposta {
@@ -89,12 +89,26 @@ import { QUESTAO_FACETA_MAP, QUESTOES_INVERTIDAS, FACETAS, FATORES } from '@/con
     return 50; // fallback
   }
 
-  // Classificar baseado no percentil
-  function classificar(percentil: number): 'Muito Baixo' | 'Baixo' | 'Médio' | 'Alto' | 'Muito Alto' {
-    if (percentil <= 15) return 'Muito Baixo';
-    if (percentil <= 35) return 'Baixo';
-    if (percentil <= 65) return 'Médio';
-    if (percentil <= 85) return 'Alto';
+  type Classificacao = 'Muito Baixo' | 'Baixo' | 'Médio' | 'Alto' | 'Muito Alto';
+
+  // Classificação por score bruto na escala 24-120 (fator).
+  // Fonte da escala: curso da Isa Moreira. Algoritmo antigo classificava por
+  // percentil populacional, o que causava score 71 (Baixo na escala) aparecer
+  // como 'Alto' porque a pessoa estava no 85º percentil. Issue Plane #26.
+  export function classificarFator(scoreBruto: number): Classificacao {
+    if (scoreBruto <= 47) return 'Muito Baixo';
+    if (scoreBruto <= 71) return 'Baixo';
+    if (scoreBruto <= 83) return 'Médio';
+    if (scoreBruto <= 107) return 'Alto';
+    return 'Muito Alto';
+  }
+
+  // Classificação por score bruto na escala 4-20.
+  export function classificarFaceta(scoreBruto: number): Classificacao {
+    if (scoreBruto <= 8) return 'Muito Baixo';
+    if (scoreBruto <= 11) return 'Baixo';
+    if (scoreBruto <= 13) return 'Médio';
+    if (scoreBruto <= 17) return 'Alto';
     return 'Muito Alto';
   }
 
@@ -122,7 +136,7 @@ import { QUESTAO_FACETA_MAP, QUESTOES_INVERTIDAS, FACETAS, FATORES } from '@/con
     const resultados: ScoreFaceta[] = Object.entries(scoresPorFaceta).map(([faceta, score]) => {
       const facetaKey = faceta as FacetaKey;
       const percentil = calcularPercentil(score!, PERCENTIS_FACETAS[facetaKey]);
-      const classificacao = classificar(percentil);
+      const classificacao = classificarFaceta(score!);
       
       return {
         faceta: facetaKey,
@@ -165,7 +179,7 @@ import { QUESTAO_FACETA_MAP, QUESTOES_INVERTIDAS, FACETAS, FATORES } from '@/con
         fator: fator as FatorKey,
         score: scoreFator,
         percentil: percentilMedio,
-        classificacao: classificar(percentilMedio),
+        classificacao: classificarFator(scoreFator),
       });
     });
     
@@ -204,4 +218,3 @@ import { QUESTAO_FACETA_MAP, QUESTOES_INVERTIDAS, FACETAS, FATORES } from '@/con
       .filter(sf => sf.prioridade > 0)
       .map(sf => sf.faceta);
   }
-  

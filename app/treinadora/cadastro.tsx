@@ -10,6 +10,7 @@ import { useState } from 'react';
     Platform,
     ActivityIndicator,
     ScrollView,
+    Switch,
   } from 'react-native';
   import { useRouter } from 'expo-router';
   import { LinearGradient } from 'expo-linear-gradient';
@@ -17,6 +18,7 @@ import { useState } from 'react';
   import { supabase } from '@/lib/supabase/client';
   import { COLORS } from '@/constants/colors';
   import { showAlert } from '@/utils/alert';
+import { formatarWhatsApp, formatarWhatsAppExibicao, validarWhatsApp } from '@/utils/whatsapp';
 import { WebContent } from '@/components/WebContent';
 
   export default function TreinadoraCadastroScreen() {
@@ -25,13 +27,21 @@ import { WebContent } from '@/components/WebContent';
     
     const [nome, setNome] = useState('');
     const [email, setEmail] = useState('');
+    const [whatsapp, setWhatsapp] = useState('');
+    const [mostrarWhatsapp, setMostrarWhatsapp] = useState(true);
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleCadastro = async () => {
-      if (!nome || !email || !password || !confirmPassword) {
+      if (!nome || !email || !whatsapp || !password || !confirmPassword) {
         showAlert('Erro', 'Por favor, preencha todos os campos');
+        return;
+      }
+
+      const whatsappFormatado = formatarWhatsApp(whatsapp);
+      if (!validarWhatsApp(whatsappFormatado)) {
+        showAlert('Erro', 'WhatsApp inválido. Use o formato +55 11 99999-9999');
         return;
       }
 
@@ -63,6 +73,8 @@ import { WebContent } from '@/components/WebContent';
               auth_user_id: data.user.id,
               email: email,
               nome: nome,
+              whatsapp: whatsappFormatado,
+              mostrar_whatsapp: mostrarWhatsapp,
             });
 
           if (dbError) {
@@ -85,6 +97,7 @@ import { WebContent } from '@/components/WebContent';
         setLoading(false);
       }
     };
+
 
     return (
       <LinearGradient colors={[...COLORS.gradient]} style={styles.container}>
@@ -124,6 +137,27 @@ import { WebContent } from '@/components/WebContent';
                     autoCapitalize="none"
                     autoComplete="email"
                   />
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="WhatsApp"
+                    placeholderTextColor={COLORS.textMuted}
+                    value={formatarWhatsAppExibicao(whatsapp)}
+                    onChangeText={(text) => setWhatsapp(formatarWhatsApp(text))}
+                    keyboardType="phone-pad"
+                  />
+
+                  <View style={styles.switchRow}>
+                    <View style={styles.switchTextContainer}>
+                      <Text style={styles.switchLabel}>Exibir WhatsApp no resultado</Text>
+                      <Text style={styles.switchHelp}>Clientes poderão chamar você pelo botão no resultado.</Text>
+                    </View>
+                    <Switch
+                      value={mostrarWhatsapp}
+                      onValueChange={setMostrarWhatsapp}
+                      thumbColor={mostrarWhatsapp ? COLORS.accent : COLORS.textMuted}
+                    />
+                  </View>
 
                   <TextInput
                     style={styles.input}
@@ -227,6 +261,33 @@ import { WebContent } from '@/components/WebContent';
       marginBottom: 16,
       borderWidth: 1,
       borderColor: COLORS.inputBorder,
+    },
+    switchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: COLORS.inputBg,
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: COLORS.inputBorder,
+      gap: 12,
+    },
+    switchTextContainer: {
+      flex: 1,
+    },
+    switchLabel: {
+      fontSize: 15,
+      fontWeight: '600' as const,
+      color: COLORS.cream,
+      marginBottom: 4,
+    },
+    switchHelp: {
+      fontSize: 12,
+      color: COLORS.textMuted,
+      lineHeight: 16,
     },
     buttonWrapper: {
       borderRadius: 12,

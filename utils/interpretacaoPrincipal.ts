@@ -52,6 +52,7 @@ export interface VisaoGeralFator {
   fator: FatorKey;
   nome: string;
   icone: string;
+  score: number;
   percentil: number;
   classificacao: Classificacao;
   descricaoBreve: string;
@@ -768,6 +769,7 @@ function gerarVisaoGeral(scoresFatores: ScoreFator[], fatorDominante: FatorKey):
       fator: score.fator,
       nome: FATORES[score.fator],
       icone: visual.icone,
+      score: score.score,
       percentil: score.percentil,
       classificacao: score.classificacao,
       descricaoBreve: DESCRICOES_BREVES[score.fator][score.classificacao],

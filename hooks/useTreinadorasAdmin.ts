@@ -11,6 +11,12 @@ import { useEffect, useState } from 'react';
 
 const TREINADORAS_ADMIN_QUERY_KEY = ['admin', 'treinadoras'] as const;
 
+/**
+ * Campos selecionados ao buscar treinadoras pra view admin.
+ * Centralizado pra evitar drift entre query principal e fallback.
+ */
+const TREINADORA_ADMIN_FIELDS = 'id, nome, email, whatsapp, mostrar_whatsapp, creditos, created_at, is_admin';
+
 interface UseTreinadorasAdminOptions {
   enabled?: boolean;
 }
@@ -42,7 +48,7 @@ async function fetchTreinadorasAdmin(): Promise<TreinadoraAdmin[]> {
   // Tenta buscar treinadoras excluindo admins (query principal)
   let { data: treinadoras, error: treinadorasError } = await supabase
     .from('treinadoras')
-    .select('id, nome, email, whatsapp, creditos, created_at, is_admin')
+    .select(TREINADORA_ADMIN_FIELDS)
     .eq('is_admin', false)
     .order('created_at', { ascending: false });
 
@@ -52,7 +58,7 @@ async function fetchTreinadorasAdmin(): Promise<TreinadoraAdmin[]> {
     
     const fallbackResult = await supabase
       .from('treinadoras')
-      .select('id, nome, email, whatsapp, creditos, created_at, is_admin')
+      .select(TREINADORA_ADMIN_FIELDS)
       .order('created_at', { ascending: false });
     
     if (fallbackResult.error) {

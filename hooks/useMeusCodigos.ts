@@ -10,7 +10,8 @@ export interface CodigoDisponivel {
   validoAte: string;
   diasRestantes: number;
   emailEnviado?: string | null;
-  nomeAluna?: string | null;
+  // Nota: coluna na DB chama-se `nome_aluna` (legado). Na UI usamos `nomeCliente`.
+  nomeCliente?: string | null;
   dataEnvioEmail?: string | null;
 }
 

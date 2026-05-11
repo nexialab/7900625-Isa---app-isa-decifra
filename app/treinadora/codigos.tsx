@@ -43,7 +43,7 @@ export default function MeusCodigosScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [copiado, setCopiado] = useState<string | null>(null);
   const [modalEmailVisible, setModalEmailVisible] = useState(false);
-  const [codigoSelecionado, setCodigoSelecionado] = useState<{ id: string; codigo: string; validoAte?: string; emailEnviado?: string | null; nomeAluna?: string | null } | null>(null);
+  const [codigoSelecionado, setCodigoSelecionado] = useState<{ id: string; codigo: string; validoAte?: string; emailEnviado?: string | null; nomeCliente?: string | null } | null>(null);
   const {
     data: meusCodigosData,
     isLoading: isLoadingCodigos,
@@ -90,12 +90,12 @@ export default function MeusCodigosScreen() {
     setRefreshing(false);
   };
 
-  const abrirModalEmail = (item: { id: string; codigo: string; validoAte?: string; emailEnviado?: string | null; nomeAluna?: string | null }) => {
+  const abrirModalEmail = (item: { id: string; codigo: string; validoAte?: string; emailEnviado?: string | null; nomeCliente?: string | null }) => {
     setCodigoSelecionado(item);
     setModalEmailVisible(true);
   };
 
-  const handleEnviarEmail = (email: string, nomeAluna: string) => {
+  const handleEnviarEmail = (email: string, nomeCliente: string) => {
     if (!codigoSelecionado) return;
 
     enviarEmail(
@@ -103,7 +103,7 @@ export default function MeusCodigosScreen() {
         codigoId: codigoSelecionado.id,
         codigo: codigoSelecionado.codigo,
         emailDestinatario: email,
-        nomeDestinatario: nomeAluna,
+        nomeDestinatario: nomeCliente,
         validoAte: codigoSelecionado.validoAte,
       },
       {
@@ -354,7 +354,7 @@ export default function MeusCodigosScreen() {
             onEnviar={handleEnviarEmail}
             codigo={codigoSelecionado?.codigo || ''}
             emailInicial={codigoSelecionado?.emailEnviado}
-            nomeAlunaInicial={codigoSelecionado?.nomeAluna}
+            nomeClienteInicial={codigoSelecionado?.nomeCliente}
             isLoading={isEnviandoEmail}
             titulo={codigoSelecionado?.emailEnviado ? 'Reenviar código por email' : 'Enviar código por email'}
             botaoTexto={codigoSelecionado?.emailEnviado ? 'Reenviar Código' : 'Enviar Código'}

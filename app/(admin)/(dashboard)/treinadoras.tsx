@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Modal,
+  Switch,
 } from 'react-native';
 import { COLORS_ARTIO } from '@/constants/colors-artio';
 import { useTreinadorasAdmin } from '@/hooks/useTreinadorasAdmin';
@@ -19,6 +20,7 @@ import { useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import type { TreinadoraAdmin } from '@/types/admin';
 import { showAlert } from '@/utils/alert';
+import { formatarWhatsApp, formatarWhatsAppExibicao, validarWhatsApp } from '@/utils/whatsapp';
 import { WebContent } from '@/components/WebContent';
 
 // Cores específicas do admin
@@ -46,6 +48,7 @@ export default function TreinadorasScreen() {
     nome: '',
     email: '',
     whatsapp: '',
+    mostrar_whatsapp: true,
     senha: ''
   });
   const [mostrarSenha, setMostrarSenha] = useState(false);
@@ -57,7 +60,7 @@ export default function TreinadorasScreen() {
 
   // Estados para o modal de editar treinadora
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editForm, setEditForm] = useState({ nome: '', email: '', whatsapp: '' });
+  const [editForm, setEditForm] = useState({ nome: '', email: '', whatsapp: '', mostrar_whatsapp: true });
 
   // Estado para modal de confirmação de exclusão
   const [confirmDeleteVisible, setConfirmDeleteVisible] = useState(false);
@@ -79,48 +82,6 @@ export default function TreinadorasScreen() {
   };
 
   // Função para formatar WhatsApp no padrão internacional (+5511999999999)
-  const formatarWhatsApp = (valor: string): string => {
-    // Remove tudo que não for dígito
-    let numeros = valor.replace(/\D/g, '');
-    
-    // Se começar com 55 e tiver mais de 2 dígitos, mantém
-    if (numeros.startsWith('55') && numeros.length > 2) {
-      // Limita a 13 dígitos (55 + DDD + 9 dígitos)
-      numeros = numeros.slice(0, 13);
-    } else if (!numeros.startsWith('55') && numeros.length > 0) {
-      // Se não começar com 55, adiciona
-      numeros = '55' + numeros;
-      numeros = numeros.slice(0, 13);
-    }
-    
-    return numeros;
-  };
-
-  // Função para formatar WhatsApp para exibição (+55 11 99999-9999)
-  const formatarWhatsAppExibicao = (valor: string): string => {
-    if (!valor) return '';
-    
-    // Remove tudo que não for dígito
-    const numeros = valor.replace(/\D/g, '');
-    
-    if (numeros.length <= 2) {
-      return numeros;
-    } else if (numeros.length <= 4) {
-      return `+${numeros.slice(0, 2)} ${numeros.slice(2)}`;
-    } else if (numeros.length <= 9) {
-      return `+${numeros.slice(0, 2)} ${numeros.slice(2, 4)} ${numeros.slice(4)}`;
-    } else {
-      return `+${numeros.slice(0, 2)} ${numeros.slice(2, 4)} ${numeros.slice(4, 9)}-${numeros.slice(9, 13)}`;
-    }
-  };
-
-  // Valida se o WhatsApp está no formato correto
-  const validarWhatsApp = (whatsapp: string): boolean => {
-    const numeros = whatsapp.replace(/\D/g, '');
-    // Deve ter 55 + DDD (2 dígitos) + número (8 ou 9 dígitos) = 12 ou 13 dígitos
-    return numeros.length >= 12 && numeros.length <= 13 && numeros.startsWith('55');
-  };
-
   // Abrir menu de ações
   const handleOpenMenu = (treinadora: TreinadoraAdmin) => {
     setTreinadoraSelecionada(treinadora);
@@ -133,7 +94,8 @@ export default function TreinadorasScreen() {
     setEditForm({
       nome: treinadoraSelecionada.nome,
       email: treinadoraSelecionada.email,
-      whatsapp: treinadoraSelecionada.whatsapp || ''
+      whatsapp: treinadoraSelecionada.whatsapp || '',
+      mostrar_whatsapp: treinadoraSelecionada.mostrar_whatsapp ?? true,
     });
     setMenuVisible(false);
     setEditModalVisible(true);
@@ -205,6 +167,7 @@ export default function TreinadorasScreen() {
           nome: editForm.nome.trim(),
           email: emailLimpo,
           whatsapp: whatsappFormatado,
+          mostrar_whatsapp: editForm.mostrar_whatsapp,
         })
         .eq('id', treinadoraSelecionada.id);
 
@@ -415,6 +378,7 @@ export default function TreinadorasScreen() {
             nome: novaTreinadora.nome.trim(),
             email: emailLimpo,
             whatsapp: whatsappFormatado,
+            mostrar_whatsapp: novaTreinadora.mostrar_whatsapp,
             senha: senha,
           }),
         }
@@ -450,7 +414,7 @@ export default function TreinadorasScreen() {
       );
       
       setModalVisible(false);
-      setNovaTreinadora({ nome: '', email: '', whatsapp: '', senha: '' });
+      setNovaTreinadora({ nome: '', email: '', whatsapp: '', mostrar_whatsapp: true, senha: '' });
       refetch();
     } catch (error: any) {
       console.error('Erro completo:', error);
@@ -471,7 +435,7 @@ export default function TreinadorasScreen() {
   const criarTreinadoraSemAuth = async (dados: typeof novaTreinadora) => {
     try {
       // Verificar se já existe treinadora com este email
-      const { data: existing, error: checkError } = await supabase
+      const { data: existing } = await supabase
         .from('treinadoras')
         .select('id')
         .eq('email', dados.email.trim().toLowerCase())
@@ -490,6 +454,7 @@ export default function TreinadorasScreen() {
           nome: dados.nome.trim(),
           email: dados.email.trim().toLowerCase(),
           whatsapp: whatsappFormatado,
+          mostrar_whatsapp: dados.mostrar_whatsapp ?? true,
           is_admin: false,
           auth_user_id: null
         });
@@ -506,7 +471,7 @@ export default function TreinadorasScreen() {
       );
       
       setModalVisible(false);
-      setNovaTreinadora({ nome: '', email: '', whatsapp: '', senha: '' });
+      setNovaTreinadora({ nome: '', email: '', whatsapp: '', mostrar_whatsapp: true, senha: '' });
       refetch();
     } catch (error: any) {
       showAlert('Erro', error.message);
@@ -771,6 +736,18 @@ export default function TreinadorasScreen() {
                 />
               </View>
 
+              <View style={styles.switchGroup}>
+                <View style={styles.switchTextContainer}>
+                  <Text style={styles.inputLabel}>Exibir WhatsApp no resultado</Text>
+                  <Text style={styles.switchHelp}>Controla o botão de contato visto pelos clientes.</Text>
+                </View>
+                <Switch
+                  value={novaTreinadora.mostrar_whatsapp}
+                  onValueChange={(value) => setNovaTreinadora({...novaTreinadora, mostrar_whatsapp: value})}
+                  thumbColor={novaTreinadora.mostrar_whatsapp ? ADMIN_COLORS.accent : ADMIN_COLORS.textMuted}
+                />
+              </View>
+
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Senha *</Text>
                 <View style={styles.senhaContainer}>
@@ -843,7 +820,7 @@ export default function TreinadorasScreen() {
               </Text>
               {treinadoraSelecionada && (
                 <Text style={{ color: ADMIN_COLORS.accent, fontSize: 18, fontWeight: '600', marginBottom: 16 }}>
-                  "{treinadoraSelecionada.nome}"
+                  {`"${treinadoraSelecionada.nome}"`}
                 </Text>
               )}
               <Text style={{ color: ADMIN_COLORS.textMuted, fontSize: 14 }}>
@@ -925,6 +902,18 @@ export default function TreinadorasScreen() {
                   keyboardType="phone-pad"
                   value={formatarWhatsAppExibicao(editForm.whatsapp)}
                   onChangeText={(text) => setEditForm({...editForm, whatsapp: formatarWhatsApp(text)})}
+                />
+              </View>
+
+              <View style={styles.switchGroup}>
+                <View style={styles.switchTextContainer}>
+                  <Text style={styles.inputLabel}>Exibir WhatsApp no resultado</Text>
+                  <Text style={styles.switchHelp}>Controla o botão de contato visto pelos clientes.</Text>
+                </View>
+                <Switch
+                  value={editForm.mostrar_whatsapp}
+                  onValueChange={(value) => setEditForm({...editForm, mostrar_whatsapp: value})}
+                  thumbColor={editForm.mostrar_whatsapp ? ADMIN_COLORS.accent : ADMIN_COLORS.textMuted}
                 />
               </View>
             </View>
@@ -1287,6 +1276,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 14,
     color: ADMIN_COLORS.text,
+  },
+  switchGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    backgroundColor: ADMIN_COLORS.card,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: ADMIN_COLORS.border,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  switchTextContainer: {
+    flex: 1,
+  },
+  switchHelp: {
+    marginTop: 4,
+    fontSize: 12,
+    color: ADMIN_COLORS.textMuted,
   },
   modalFooter: {
     flexDirection: 'row',

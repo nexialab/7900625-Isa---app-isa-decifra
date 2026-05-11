@@ -16,10 +16,10 @@ import { COLORS_ARTIO } from '@/constants/colors-artio';
 interface EnviarEmailModalProps {
   visible: boolean;
   onClose: () => void;
-  onEnviar: (email: string, nomeAluna: string) => void;
+  onEnviar: (email: string, nomeCliente: string) => void;
   codigo: string;
   emailInicial?: string | null;
-  nomeAlunaInicial?: string | null;
+  nomeClienteInicial?: string | null;
   isLoading?: boolean;
   titulo?: string;
   botaoTexto?: string;
@@ -31,22 +31,22 @@ export function EnviarEmailModal({
   onEnviar,
   codigo,
   emailInicial,
-  nomeAlunaInicial,
+  nomeClienteInicial,
   isLoading = false,
   titulo = 'Enviar código por email',
   botaoTexto = 'Enviar Código',
 }: EnviarEmailModalProps) {
   const [email, setEmail] = useState('');
-  const [nomeAluna, setNomeAluna] = useState('');
+  const [nomeCliente, setNomeCliente] = useState('');
   const [erroEmail, setErroEmail] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
       setEmail(emailInicial || '');
-      setNomeAluna(nomeAlunaInicial || '');
+      setNomeCliente(nomeClienteInicial || '');
       setErroEmail(null);
     }
-  }, [visible, emailInicial, nomeAlunaInicial]);
+  }, [visible, emailInicial, nomeClienteInicial]);
 
   const handleEnviar = () => {
     if (!email.trim()) {
@@ -59,7 +59,7 @@ export function EnviarEmailModal({
       return;
     }
     setErroEmail(null);
-    onEnviar(email.trim(), nomeAluna.trim());
+    onEnviar(email.trim(), nomeCliente.trim());
   };
 
   return (
@@ -91,10 +91,10 @@ export function EnviarEmailModal({
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.label}>Email da aluna *</Text>
+              <Text style={styles.label}>Email do cliente *</Text>
               <TextInput
                 style={[styles.input, erroEmail ? styles.inputError : null]}
-                placeholder="aluna@email.com"
+                placeholder="cliente@email.com"
                 placeholderTextColor={COLORS_ARTIO.cream}
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -110,13 +110,13 @@ export function EnviarEmailModal({
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.label}>Nome da aluna (opcional)</Text>
+              <Text style={styles.label}>Nome do cliente (opcional)</Text>
               <TextInput
                 style={styles.input}
                 placeholder="Nome completo"
                 placeholderTextColor={COLORS_ARTIO.cream}
-                value={nomeAluna}
-                onChangeText={setNomeAluna}
+                value={nomeCliente}
+                onChangeText={setNomeCliente}
                 editable={!isLoading}
               />
             </View>

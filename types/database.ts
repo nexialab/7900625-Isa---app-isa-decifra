@@ -15,6 +15,7 @@ export type Json =
             email: string
             nome: string
             whatsapp: string | null
+            mostrar_whatsapp: boolean
             creditos: number
             created_at: string
             updated_at: string
@@ -26,6 +27,7 @@ export type Json =
             email: string
             nome: string
             whatsapp?: string | null
+            mostrar_whatsapp?: boolean
             creditos?: number
             created_at?: string
             updated_at?: string
@@ -37,6 +39,7 @@ export type Json =
             email?: string
             nome?: string
             whatsapp?: string | null
+            mostrar_whatsapp?: boolean
             creditos?: number
             updated_at?: string
             auth_user_id?: string | null
@@ -251,4 +254,3 @@ export type Json =
       }
     }
   }
-  

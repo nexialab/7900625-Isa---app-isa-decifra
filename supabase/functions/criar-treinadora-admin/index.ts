@@ -11,6 +11,7 @@ interface RequestBody {
   nome: string;
   email: string;
   whatsapp: string;
+  mostrar_whatsapp?: boolean;
   senha: string;
   secret: string;
 }
@@ -30,7 +31,7 @@ Deno.serve(async (req) => {
 
   try {
     const body: RequestBody = await req.json();
-    const { nome, email, whatsapp, senha, secret } = body;
+    const { nome, email, whatsapp, mostrar_whatsapp = true, senha, secret } = body;
 
     // Validar secret
     if (secret !== ADMIN_SECRET) {
@@ -97,6 +98,7 @@ Deno.serve(async (req) => {
               nome: nome.trim(),
               email: emailLimpo,
               whatsapp,
+              mostrar_whatsapp,
               is_admin: false,
               auth_user_id: existingUser.id,
             });
@@ -139,6 +141,7 @@ Deno.serve(async (req) => {
         nome: nome.trim(),
         email: emailLimpo,
         whatsapp,
+        mostrar_whatsapp,
         is_admin: false,
         auth_user_id: authData.user.id,
       });

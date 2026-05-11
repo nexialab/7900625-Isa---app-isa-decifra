@@ -71,7 +71,11 @@ import { WebContent } from '@/components/WebContent';
     const [resultado, setResultado] = useState<Resultado | null>(null);
     const [protocolos, setProtocolos] = useState<Protocolo[]>([]);
     const [codigoInfo, setCodigoInfo] = useState<CodigoInfo | null>(null);
-    const [treinadoraInfo, setTreinadoraInfo] = useState<{whatsapp: string | null, nome: string | null}>({whatsapp: null, nome: null});
+    const [treinadoraInfo, setTreinadoraInfo] = useState<{whatsapp: string | null, nome: string | null, mostrarWhatsapp: boolean}>({
+      whatsapp: null,
+      nome: null,
+      mostrarWhatsapp: true,
+    });
 
     useEffect(() => {
       carregarResultado();
@@ -164,14 +168,15 @@ import { WebContent } from '@/components/WebContent';
         if (!clienteError && clienteData?.treinadora_id) {
           const { data: treinadoraData, error: treinadoraError } = await supabase
             .from('treinadoras')
-            .select('whatsapp, nome')
+            .select('whatsapp, nome, mostrar_whatsapp')
             .eq('id', clienteData.treinadora_id)
             .single();
 
           if (!treinadoraError && treinadoraData) {
             setTreinadoraInfo({
               whatsapp: treinadoraData.whatsapp,
-              nome: treinadoraData.nome
+              nome: treinadoraData.nome,
+              mostrarWhatsapp: treinadoraData.mostrar_whatsapp ?? true,
             });
           }
         }
@@ -302,6 +307,16 @@ import { WebContent } from '@/components/WebContent';
       }
     };
 
+    const handleAbrirProtocolos = () => {
+      router.push({
+        pathname: '/cliente/protocolos',
+        params: {
+          clienteId: clienteId as string,
+          resultadoId: resultadoId as string,
+        },
+      });
+    };
+
     // Renderizar card da visão geral de um fator
     const renderVisaoGeralCard = (item: VisaoGeralFator, index: number) => {
       const isDominante = index === 0;
@@ -324,6 +339,7 @@ import { WebContent } from '@/components/WebContent';
                 <Text style={[styles.visaoGeralClassificacao, { color: item.corIndicador }]}>
                   {item.classificacao}
                 </Text>
+                <Text style={styles.visaoGeralScore}>{item.score} / 120</Text>
                 <Text style={styles.visaoGeralPercentil}>P{item.percentil}</Text>
               </View>
             </View>
@@ -608,8 +624,30 @@ import { WebContent } from '@/components/WebContent';
               </View>
             )}
 
+            {protocolos.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Protocolos Recomendados</Text>
+                <Text style={styles.sectionSubtitle}>Toque em um protocolo para abrir os exercícios.</Text>
+                {protocolos.map((protocolo) => (
+                  <TouchableOpacity
+                    key={protocolo.id}
+                    style={styles.protocoloResumoCard}
+                    onPress={handleAbrirProtocolos}
+                    activeOpacity={0.85}
+                  >
+                    <View style={styles.protocoloResumoHeader}>
+                      <Text style={styles.protocoloResumoPrioridade}>{protocolo.prioridade}</Text>
+                      <Text style={styles.protocoloResumoTitulo}>{protocolo.titulo}</Text>
+                      <Text style={styles.protocoloResumoArrow}>→</Text>
+                    </View>
+                    <Text style={styles.protocoloResumoDescricao}>{protocolo.descricao}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
             {/* Botão WhatsApp */}
-            {treinadoraInfo.whatsapp && (
+            {treinadoraInfo.whatsapp && treinadoraInfo.mostrarWhatsapp && (
               <View style={styles.whatsappContainer}>
                 <TouchableOpacity
                   style={styles.botaoWhatsApp}
@@ -728,6 +766,45 @@ import { WebContent } from '@/components/WebContent';
       fontWeight: '600',
       marginTop: -6,
       marginBottom: 14,
+    },
+    protocoloResumoCard: {
+      backgroundColor: COLORS.cardBg,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: COLORS.cardBorder,
+      padding: 16,
+      marginBottom: 12,
+    },
+    protocoloResumoHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginBottom: 8,
+    },
+    protocoloResumoPrioridade: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: COLORS.accent,
+      color: COLORS.creamLight,
+      textAlign: 'center',
+      lineHeight: 28,
+      fontWeight: '700',
+    },
+    protocoloResumoTitulo: {
+      flex: 1,
+      fontSize: 16,
+      fontWeight: '700',
+      color: COLORS.creamLight,
+    },
+    protocoloResumoArrow: {
+      fontSize: 20,
+      color: COLORS.accent,
+    },
+    protocoloResumoDescricao: {
+      fontSize: 14,
+      color: COLORS.textSecondary,
+      lineHeight: 20,
     },
     codigoInfoCard: {
       backgroundColor: COLORS.cardBg,
@@ -892,6 +969,11 @@ import { WebContent } from '@/components/WebContent';
     visaoGeralClassificacao: {
       fontSize: 15,
       fontWeight: '600',
+    },
+    visaoGeralScore: {
+      fontSize: 14,
+      color: COLORS.cream,
+      opacity: 0.85,
     },
     visaoGeralPercentil: {
       fontSize: 14,

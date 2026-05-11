@@ -8,6 +8,9 @@ import { useState, useEffect, useCallback } from 'react';
     ScrollView,
     ActivityIndicator,
     RefreshControl,
+    TextInput,
+    Switch,
+    Linking,
   } from 'react-native';
   import { useRouter } from 'expo-router';
   import * as Clipboard from 'expo-clipboard';
@@ -16,14 +19,18 @@ import { useState, useEffect, useCallback } from 'react';
   import { COLORS } from '@/constants/colors';
   import { useMeusCodigos } from '@/hooks/useMeusCodigos';
   import { showAlert } from '@/utils/alert';
+  import { formatarWhatsApp, formatarWhatsAppExibicao, validarWhatsApp } from '@/utils/whatsapp';
 import { WebContent } from '@/components/WebContent';
   import { useEnviarCodigoPorEmail } from '@/hooks/useEnviarCodigoPorEmail';
   import { EnviarEmailModal } from '@/components/EnviarEmailModal';
+  import { CONTATO_CREDITOS, buildWhatsappUrl, temContatoConfigurado } from '@/constants/contato';
 
   interface Treinadora {
     id: string;
     nome: string;
     email: string;
+    whatsapp: string | null;
+    mostrar_whatsapp: boolean;
   }
 
   interface Cliente {
@@ -48,9 +55,12 @@ import { WebContent } from '@/components/WebContent';
     const [ultimoCodigoValidoAte, setUltimoCodigoValidoAte] = useState<string | null>(null);
     const [ultimoCodigoValidoAteISO, setUltimoCodigoValidoAteISO] = useState<string | null>(null);
     const [ultimoCodigoEmailEnviado, setUltimoCodigoEmailEnviado] = useState<string | null>(null);
-    const [ultimoCodigoNomeAluna, setUltimoCodigoNomeAluna] = useState<string | null>(null);
+    const [ultimoCodigoNomeCliente, setUltimoCodigoNomeCliente] = useState<string | null>(null);
     const [codigoGeradoCopiado, setCodigoGeradoCopiado] = useState(false);
     const [modalEmailVisible, setModalEmailVisible] = useState(false);
+    const [perfilWhatsapp, setPerfilWhatsapp] = useState('');
+    const [perfilMostrarWhatsapp, setPerfilMostrarWhatsapp] = useState(true);
+    const [salvandoPerfil, setSalvandoPerfil] = useState(false);
     const { data: meusCodigosData, refetch: refetchMeusCodigos } = useMeusCodigos(treinadora?.id);
     const { mutate: enviarEmail, isPending: isEnviandoEmail } = useEnviarCodigoPorEmail();
 
@@ -68,6 +78,9 @@ import { WebContent } from '@/components/WebContent';
       if (!user) return;
 
       try {
+        const emailUsuario = user.email || '';
+        let treinadoraAtual: Treinadora | null = null;
+
         // Primeiro tentar buscar treinadora existente
         const { data: treinadoraData, error: treinadoraError } = await supabase
           .from('treinadoras')
@@ -77,13 +90,14 @@ import { WebContent } from '@/components/WebContent';
 
         if (treinadoraData) {
           // Treinadora encontrada
-          setTreinadora(treinadoraData);
+          treinadoraAtual = treinadoraData as Treinadora;
+          setTreinadora(treinadoraAtual);
         } else if (treinadoraError?.code === 'PGRST116') {
           // Não encontrada, verificar se já existe por email
           const { data: existingByEmail } = await supabase
             .from('treinadoras')
             .select('*')
-            .eq('email', user.email)
+            .eq('email', emailUsuario)
             .single();
 
           if (existingByEmail) {
@@ -98,7 +112,8 @@ import { WebContent } from '@/components/WebContent';
             if (updateError) {
               console.error('Erro ao atualizar treinadora:', updateError);
             } else {
-              setTreinadora(updatedTreinadora);
+              treinadoraAtual = updatedTreinadora as Treinadora;
+              setTreinadora(treinadoraAtual);
             }
           } else {
             // Criar nova treinadora
@@ -107,9 +122,10 @@ import { WebContent } from '@/components/WebContent';
             const { data: novaTreinadora, error: criarError } = await supabase
               .from('treinadoras')
               .insert({
-                email: user.email || '',
-                nome: user.email?.split('@')[0] || 'Treinadora',
+                email: emailUsuario,
+                nome: emailUsuario.split('@')[0] || 'Treinadora',
                 auth_user_id: user.id,
+                mostrar_whatsapp: true,
               })
               .select()
               .single();
@@ -120,11 +136,12 @@ import { WebContent } from '@/components/WebContent';
                 const { data: retryData } = await supabase
                   .from('treinadoras')
                   .select('*')
-                  .eq('email', user.email)
+                  .eq('email', emailUsuario)
                   .single();
                 
                 if (retryData) {
-                  setTreinadora(retryData);
+                  treinadoraAtual = retryData as Treinadora;
+                  setTreinadora(treinadoraAtual);
                 }
               } else {
                 console.error('Erro ao criar treinadora:', criarError);
@@ -135,7 +152,8 @@ import { WebContent } from '@/components/WebContent';
             }
 
             if (novaTreinadora) {
-              setTreinadora(novaTreinadora);
+              treinadoraAtual = novaTreinadora as Treinadora;
+              setTreinadora(treinadoraAtual);
               showAlert(
                 'Bem-vinda!',
                 'Sua conta foi criada com sucesso!'
@@ -149,13 +167,18 @@ import { WebContent } from '@/components/WebContent';
           return;
         }
 
+        if (!treinadoraAtual) {
+          setLoading(false);
+          return;
+        }
+
         const { data: clientesData, error: clientesError } = await supabase
           .from('clientes')
           .select(`
             *,
             codigos:codigos!cliente_id(codigo)
           `)
-          .eq('treinadora_id', treinadoraData.id)
+          .eq('treinadora_id', treinadoraAtual.id)
           .order('created_at', { ascending: false });
 
         // Processar dados para incluir código
@@ -182,6 +205,12 @@ import { WebContent } from '@/components/WebContent';
       carregarDados();
     }, [carregarDados]);
 
+    useEffect(() => {
+      if (!treinadora) return;
+      setPerfilWhatsapp(treinadora.whatsapp || '');
+      setPerfilMostrarWhatsapp(treinadora.mostrar_whatsapp ?? true);
+    }, [treinadora]);
+
     const onRefresh = () => {
       setRefreshing(true);
       carregarDados();
@@ -199,15 +228,73 @@ import { WebContent } from '@/components/WebContent';
       }
     };
 
+    const abrirContatoCreditos = async () => {
+      const whatsappUrl = buildWhatsappUrl(CONTATO_CREDITOS.whatsapp, CONTATO_CREDITOS.mensagemInicial);
+      const emailUrl = CONTATO_CREDITOS.email
+        ? `mailto:${CONTATO_CREDITOS.email}?subject=${encodeURIComponent('Compra de créditos Decifra')}&body=${encodeURIComponent(CONTATO_CREDITOS.mensagemInicial)}`
+        : null;
+      const url = whatsappUrl || emailUrl;
+
+      if (!url) {
+        showAlert('Contato não configurado', 'O contato oficial para compra de créditos ainda precisa ser configurado.');
+        return;
+      }
+
+      try {
+        await Linking.openURL(url);
+      } catch {
+        showAlert('Erro', 'Não foi possível abrir o contato para compra de créditos.');
+      }
+    };
+
+    const salvarPerfilWhatsApp = async () => {
+      if (!treinadora) return;
+      const whatsappFormatado = formatarWhatsApp(perfilWhatsapp);
+
+      if (!validarWhatsApp(whatsappFormatado)) {
+        showAlert('Erro', 'WhatsApp inválido. Use o formato +55 11 99999-9999');
+        return;
+      }
+
+      setSalvandoPerfil(true);
+      try {
+        const { data, error } = await supabase
+          .from('treinadoras')
+          .update({
+            whatsapp: whatsappFormatado,
+            mostrar_whatsapp: perfilMostrarWhatsapp,
+          })
+          .eq('id', treinadora.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        setTreinadora(data as Treinadora);
+        showAlert('Sucesso', 'Preferências de WhatsApp atualizadas.');
+      } catch (error: any) {
+        showAlert('Erro', error.message || 'Não foi possível atualizar o WhatsApp.');
+      } finally {
+        setSalvandoPerfil(false);
+      }
+    };
+
     const gerarCodigo = async () => {
       if (!treinadora) return;
 
       const codigosDisponiveis = meusCodigosData?.total ?? 0;
       if (codigosDisponiveis <= 0) {
+        // Só mostra o botão "Comprar créditos" se houver canal de contato configurado.
+        // Sem isso, o botão cai num alert vazio — pior que não existir.
+        const acoes = temContatoConfigurado()
+          ? [
+              { text: 'Cancelar', style: 'cancel' as const },
+              { text: 'Comprar créditos', onPress: abrirContatoCreditos },
+            ]
+          : [{ text: 'OK' }];
         showAlert(
           'Sem códigos disponíveis',
           'Você não tem códigos disponíveis. Entre em contato com o administrador para adquirir mais códigos.',
-          [{ text: 'OK' }]
+          acoes
         );
         return;
       }
@@ -244,7 +331,7 @@ import { WebContent } from '@/components/WebContent';
         setUltimoCodigoValidoAte(new Date(codigoParaDistribuir.validoAte).toLocaleDateString('pt-BR'));
         setUltimoCodigoValidoAteISO(codigoParaDistribuir.validoAte);
         setUltimoCodigoEmailEnviado(null);
-        setUltimoCodigoNomeAluna(null);
+        setUltimoCodigoNomeCliente(null);
         setCodigoGeradoCopiado(false);
 
         showAlert(
@@ -265,7 +352,7 @@ import { WebContent } from '@/components/WebContent';
       setModalEmailVisible(true);
     };
 
-    const handleEnviarEmail = (email: string, nomeAluna: string) => {
+    const handleEnviarEmail = (email: string, nomeCliente: string) => {
       if (!ultimoCodigoId || !ultimoCodigoGerado) return;
 
       enviarEmail(
@@ -273,13 +360,13 @@ import { WebContent } from '@/components/WebContent';
           codigoId: ultimoCodigoId,
           codigo: ultimoCodigoGerado,
           emailDestinatario: email,
-          nomeDestinatario: nomeAluna,
+          nomeDestinatario: nomeCliente,
           validoAte: ultimoCodigoValidoAteISO || undefined,
         },
         {
           onSuccess: (res) => {
             setUltimoCodigoEmailEnviado(email);
-            setUltimoCodigoNomeAluna(nomeAluna || null);
+            setUltimoCodigoNomeCliente(nomeCliente || null);
             setModalEmailVisible(false);
             showAlert('Sucesso', res.message || 'Código enviado com sucesso!');
           },
@@ -382,6 +469,40 @@ import { WebContent } from '@/components/WebContent';
             </TouchableOpacity>
           </View>
 
+          <View style={styles.perfilCard}>
+            <Text style={styles.perfilTitle}>WhatsApp da treinadora</Text>
+            <TextInput
+              style={styles.perfilInput}
+              placeholder="+55 11 99999-9999"
+              placeholderTextColor={COLORS.textMuted}
+              value={formatarWhatsAppExibicao(perfilWhatsapp)}
+              onChangeText={(text) => setPerfilWhatsapp(formatarWhatsApp(text))}
+              keyboardType="phone-pad"
+            />
+            <View style={styles.perfilSwitchRow}>
+              <View style={styles.perfilSwitchText}>
+                <Text style={styles.perfilSwitchLabel}>Exibir no resultado dos clientes</Text>
+                <Text style={styles.perfilSwitchHelp}>Quando ativo, o botão de WhatsApp aparece no resultado.</Text>
+              </View>
+              <Switch
+                value={perfilMostrarWhatsapp}
+                onValueChange={setPerfilMostrarWhatsapp}
+                thumbColor={perfilMostrarWhatsapp ? COLORS.accent : COLORS.textMuted}
+              />
+            </View>
+            <TouchableOpacity
+              style={[styles.perfilSaveButton, salvandoPerfil && styles.buttonDisabled]}
+              onPress={salvarPerfilWhatsApp}
+              disabled={salvandoPerfil}
+            >
+              {salvandoPerfil ? (
+                <ActivityIndicator color={COLORS.cream} />
+              ) : (
+                <Text style={styles.perfilSaveButtonText}>Salvar WhatsApp</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
           {ultimoCodigoGerado && (
             <View style={styles.codigoGeradoCard}>
               <Text style={styles.codigoGeradoTitle}>Ultimo codigo resgatado</Text>
@@ -433,7 +554,7 @@ import { WebContent } from '@/components/WebContent';
             onEnviar={handleEnviarEmail}
             codigo={ultimoCodigoGerado || ''}
             emailInicial={ultimoCodigoEmailEnviado}
-            nomeAlunaInicial={ultimoCodigoNomeAluna}
+            nomeClienteInicial={ultimoCodigoNomeCliente}
             isLoading={isEnviandoEmail}
             titulo={ultimoCodigoEmailEnviado ? 'Reenviar código por email' : 'Enviar código por email'}
             botaoTexto={ultimoCodigoEmailEnviado ? 'Reenviar Código' : 'Enviar Código'}
@@ -587,6 +708,67 @@ import { WebContent } from '@/components/WebContent';
       color: COLORS.creamLight,
       opacity: 0.95,
       fontWeight: '600' as const,
+    },
+    perfilCard: {
+      marginHorizontal: 24,
+      marginTop: -8,
+      marginBottom: 24,
+      padding: 20,
+      backgroundColor: COLORS.cardBg,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: COLORS.cardBorder,
+    },
+    perfilTitle: {
+      fontSize: 17,
+      fontWeight: '700' as const,
+      color: COLORS.cream,
+      marginBottom: 14,
+    },
+    perfilInput: {
+      backgroundColor: COLORS.inputBg,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: COLORS.inputBorder,
+      color: COLORS.cream,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      fontSize: 15,
+      marginBottom: 14,
+    },
+    perfilSwitchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+      marginBottom: 14,
+    },
+    perfilSwitchText: {
+      flex: 1,
+    },
+    perfilSwitchLabel: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: COLORS.cream,
+      marginBottom: 4,
+    },
+    perfilSwitchHelp: {
+      fontSize: 12,
+      color: COLORS.textMuted,
+      lineHeight: 16,
+    },
+    perfilSaveButton: {
+      backgroundColor: COLORS.dark2,
+      borderRadius: 12,
+      paddingVertical: 12,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: COLORS.accent,
+    },
+    perfilSaveButtonText: {
+      color: COLORS.accent,
+      fontSize: 15,
+      fontWeight: '700' as const,
     },
     generateButton: {
       backgroundColor: COLORS.dark1,

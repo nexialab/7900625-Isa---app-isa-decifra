@@ -237,17 +237,18 @@ export default function ClienteTesteScreen() {
           style={styles.content}
           showsVerticalScrollIndicator={false}
         >
-          {questoesIds.map((questaoId: number) => {
+          {questoesIds.map((questaoId: number, index: number) => {
             const questao = QUESTOES.find(q => q.id === questaoId);
             if (!questao) return null;
 
             const respostaSelecionada = respostas[questaoId];
+            const posicao = index + 1;
 
             return (
               <View key={questaoId} style={styles.questaoCard}>
                 <View style={styles.questaoHeader}>
                   <Text style={[styles.questaoNumero, { color: temaEstacao.color }]}>
-                    Questão {questaoId}
+                    {posicao} de {questoesIds.length}
                   </Text>
                   {respostaSelecionada && (
                     <View style={[styles.respondidoBadge, { backgroundColor: temaEstacao.color }]}>

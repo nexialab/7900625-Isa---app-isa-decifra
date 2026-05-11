@@ -677,7 +677,7 @@ function criarProtocoloPadrao(faceta: string, facetaNome: string, tipo: 'alto' |
     exercicios: [
       {
         titulo: 'Microprática Diária',
-        descricao: `Aplicar uma microação de ${facetaNome.toLowerCase()} com foco em consistência e autoobservação.`,
+        descricao: `Aplicar uma microação de ${facetaNome.toLowerCase()} com foco em consistência e auto-observação.`,
         frequencia: 'Diária',
         duracao: '5-10 minutos',
       },

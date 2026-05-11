@@ -191,7 +191,7 @@ export const STATION_THEMES = {
     gradient: GRADIENTS.station3,
     icon: 'water',
     element: 'water',
-    description: 'Mapeamos sua forma de criar vínculos, expressar emoções e se conectar com outros.',
+    description: 'Mapeamos sua forma de criar vínculos, expressar emoções e se conectar com os outros.',
     textPrimary: COLORS_ARTIO.creamLight,
     textSecondary: COLORS_ARTIO.cream,
   },
