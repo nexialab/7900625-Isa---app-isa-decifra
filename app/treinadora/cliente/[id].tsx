@@ -19,6 +19,7 @@ import type { FatorKey } from '@/constants/ipip';
   import { recomendarProtocolosTreinadora } from '@/utils/recomendacao';
   import { COLORS } from '@/constants/colors';
   import { gerarPDF } from '@/utils/pdfGenerator';
+  import { classificarFator, classificarFaceta } from '@/utils/calculadora';
   import { showAlert } from '@/utils/alert';
 import { WebContent } from '@/components/WebContent';
   import { ProtocoloCard } from '@/components/ProtocoloCard';
@@ -175,14 +176,21 @@ export default function TreinadoraClienteResultadoScreen() {
     
     setGerandoPDF(true);
     try {
+      // Recalcula classificações antes de gerar PDF (vide #26)
       await gerarPDF({
         cliente: {
           nome: cliente.nome,
           email: cliente.email,
         },
         resultado: {
-          scores_fatores: resultado.scores_fatores,
-          scores_facetas: resultado.scores_facetas,
+          scores_fatores: resultado.scores_fatores.map(sf => ({
+            ...sf,
+            classificacao: classificarFator(sf.score),
+          })),
+          scores_facetas: resultado.scores_facetas?.map(sf => ({
+            ...sf,
+            classificacao: classificarFaceta(sf.score),
+          })),
         },
         protocolos: protocolos,
         dataTeste: new Date(cliente.created_at).toLocaleDateString('pt-BR'),
@@ -244,7 +252,20 @@ export default function TreinadoraClienteResultadoScreen() {
     );
   }
 
-  const scoresFatores = resultado.scores_fatores;
+  // Recalcula classificação a partir do score bruto (algoritmo correto, fonte: curso da Isa).
+  // O campo `classificacao` salvo no banco vem de cálculo antigo baseado em percentil
+  // populacional — resultados pré-2026-05-10 estão com label errado (issue #26).
+  // Aqui ignoramos o cache do banco e usamos classificarFator/classificarFaceta como
+  // fonte da verdade. Mesma estratégia já aplicada em app/cliente/resultado.tsx (0db7530).
+  const scoresFatores = resultado.scores_fatores.map(sf => ({
+    ...sf,
+    classificacao: classificarFator(sf.score),
+  }));
+
+  const scoresFacetas = resultado.scores_facetas?.map((sf) => ({
+    ...sf,
+    classificacao: classificarFaceta(sf.score),
+  }));
 
   const classificarParaFaixa = (classificacao: string): Faixa => {
     const normalized = classificacao.toLowerCase().trim();
@@ -348,11 +369,11 @@ export default function TreinadoraClienteResultadoScreen() {
           )}
 
           {/* Facetas (se disponíveis) */}
-          {resultado.scores_facetas && resultado.scores_facetas.length > 0 && (
+          {scoresFacetas && scoresFacetas.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>30 Facetas Detalhadas</Text>
-              
-              {resultado.scores_facetas.map((faceta) => {
+
+              {scoresFacetas.map((faceta) => {
                 const nomeFaceta = FACETAS[faceta.faceta as keyof typeof FACETAS];
                 const descricaoFaceta = FACETAS_DESCRICAO[faceta.faceta as keyof typeof FACETAS_DESCRICAO];
                 

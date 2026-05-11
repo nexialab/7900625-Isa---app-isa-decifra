@@ -35,7 +35,7 @@ import { QUESTAO_FACETA_MAP, QUESTOES_INVERTIDAS } from './ipip';
     
     // AMABILIDADE (A1-A6)
     { id: 19, texto: 'Suspeito de intenções ocultas nas pessoas', invertida: true, faceta: 'A1' },
-    { id: 20, texto: 'Faço as coisas de acordo com um plano', invertida: false, faceta: 'A2' },
+    { id: 20, texto: 'Sou direto(a) com as pessoas', invertida: false, faceta: 'A2' },
     { id: 21, texto: 'Preocupo-me com os outros', invertida: false, faceta: 'A3' },
     { id: 22, texto: 'Tenho um temperamento difícil', invertida: true, faceta: 'A4' },
     { id: 23, texto: 'Gosto de falar sobre mim', invertida: true, faceta: 'A5' },
@@ -96,13 +96,13 @@ import { QUESTAO_FACETA_MAP, QUESTOES_INVERTIDAS } from './ipip';
     
     { id: 67, texto: 'Evito multidões', invertida: true, faceta: 'E1' },
     { id: 68, texto: 'Gosto de me misturar em multidões', invertida: false, faceta: 'E2' },
-    { id: 69, texto: 'Deixo os outros fazerem o trabalho', invertida: true, faceta: 'E3' },
+    { id: 69, texto: 'Evito assumir responsabilidades e deixo para os outros', invertida: true, faceta: 'E3' },
     { id: 70, texto: 'Estou sempre ocupado(a)', invertida: false, faceta: 'E4' },
     { id: 71, texto: 'Prefiro variedade à rotina', invertida: false, faceta: 'E5' },
     { id: 72, texto: 'Tenho um bom humor contagiante', invertida: false, faceta: 'E6' },
     
     { id: 73, texto: 'Não gosto de sonhar acordado(a)', invertida: true, faceta: 'O1' },
-    { id: 74, texto: 'Adoro flores', invertida: false, faceta: 'O2' },
+    { id: 74, texto: 'Aprecio um bom poema ou obra literária', invertida: false, faceta: 'O2' },
     { id: 75, texto: 'Sinto as emoções dos outros', invertida: false, faceta: 'O3' },
     { id: 76, texto: 'Não gosto de mudanças', invertida: true, faceta: 'O4' },
     { id: 77, texto: 'Tenho uma mente investigativa', invertida: false, faceta: 'O5' },
@@ -126,7 +126,7 @@ import { QUESTAO_FACETA_MAP, QUESTOES_INVERTIDAS } from './ipip';
     { id: 91, texto: 'Sou relaxado(a) a maior parte do tempo', invertida: true, faceta: 'N1' },
     { id: 92, texto: 'Me irrito com facilidade', invertida: false, faceta: 'N2' },
     { id: 93, texto: 'Me sinto confortável com minha vida', invertida: true, faceta: 'N3' },
-    { id: 94, texto: 'Me preocupo com a opinião dos outros', invertida: false, faceta: 'N4' },
+    { id: 94, texto: 'Tenho dificuldade em falar em público', invertida: false, faceta: 'N4' },
     { id: 95, texto: 'Cedo aos meus impulsos', invertida: false, faceta: 'N5' },
     { id: 96, texto: 'Sou sensível ao estresse', invertida: false, faceta: 'N6' },
     
