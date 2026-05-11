@@ -103,13 +103,13 @@ import { QUESTAO_FACETA_MAP, QUESTOES_INVERTIDAS } from './ipip';
     
     { id: 73, texto: 'Não gosto de sonhar acordado(a)', invertida: true, faceta: 'O1' },
     { id: 74, texto: 'Aprecio um bom poema ou obra literária', invertida: false, faceta: 'O2' },
-    { id: 75, texto: 'Sinto as emoções dos outros', invertida: false, faceta: 'O3' },
+    { id: 75, texto: 'Tenho consciência dos meus sentimentos', invertida: false, faceta: 'O3' },
     { id: 76, texto: 'Não gosto de mudanças', invertida: true, faceta: 'O4' },
     { id: 77, texto: 'Tenho uma mente investigativa', invertida: false, faceta: 'O5' },
     { id: 78, texto: 'Acredito que existem exceções para tudo', invertida: false, faceta: 'O6' },
     
     { id: 79, texto: 'Desconfio dos outros', invertida: true, faceta: 'A1' },
-    { id: 80, texto: 'Sou honesto(a) na maioria das vezes', invertida: false, faceta: 'A2' },
+    { id: 80, texto: 'Sou honesto(a) nas minhas relações', invertida: false, faceta: 'A2' },
     { id: 81, texto: 'Sou indiferente ao sofrimento alheio', invertida: true, faceta: 'A3' },
     { id: 82, texto: 'Sou paciente com os outros', invertida: false, faceta: 'A4' },
     { id: 83, texto: 'Acho que sou melhor que os outros', invertida: true, faceta: 'A5' },
@@ -139,7 +139,7 @@ import { QUESTAO_FACETA_MAP, QUESTOES_INVERTIDAS } from './ipip';
     
     { id: 103, texto: 'Não sou muito imaginativo(a)', invertida: true, faceta: 'O1' },
     { id: 104, texto: 'Me emociono com arte e música', invertida: false, faceta: 'O2' },
-    { id: 105, texto: 'Sou sensível às minhas próprias emoções', invertida: false, faceta: 'O3' },
+    { id: 105, texto: 'Sou sensível às minhas emoções', invertida: false, faceta: 'O3' },
     { id: 106, texto: 'Gosto de tentar coisas novas', invertida: false, faceta: 'O4' },
     { id: 107, texto: 'Tenho curiosidade intelectual', invertida: false, faceta: 'O5' },
     { id: 108, texto: 'Questiono a autoridade', invertida: false, faceta: 'O6' },
@@ -153,7 +153,7 @@ import { QUESTAO_FACETA_MAP, QUESTOES_INVERTIDAS } from './ipip';
     
     { id: 115, texto: 'Deixo minhas coisas pela casa', invertida: true, faceta: 'C1' },
     { id: 116, texto: 'Sigo um cronograma', invertida: false, faceta: 'C2' },
-    { id: 117, texto: 'Cumpro com meus deveres', invertida: false, faceta: 'C3' },
+    { id: 117, texto: 'Cumpro meus deveres', invertida: false, faceta: 'C3' },
     { id: 118, texto: 'Estabeleço altos padrões para mim e para os outros', invertida: false, faceta: 'C4' },
     { id: 119, texto: 'Mantenho o foco nas minhas tarefas', invertida: false, faceta: 'C5' },
     { id: 120, texto: 'Considero as consequências antes de agir', invertida: false, faceta: 'C6' },
