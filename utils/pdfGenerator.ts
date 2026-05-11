@@ -134,18 +134,51 @@ export async function gerarPDF(dados: PDFData): Promise<void> {
 }
 
 async function gerarPDFWeb(html: string, dados: PDFData): Promise<void> {
-  const printWindow = window.open('', '_blank');
-  if (!printWindow) {
-    throw new Error('Não foi possível abrir a janela de impressão. Verifique se o pop-up está bloqueado.');
+  // html2pdf.js depende de DOM (jspdf + html2canvas) — importar dinâmico
+  // para não quebrar bundle SSR / mobile.
+  const html2pdfModule = await import('html2pdf.js');
+  const html2pdf = (html2pdfModule.default ?? html2pdfModule) as any;
+
+  // Renderiza o HTML em container off-screen para o html2canvas conseguir
+  // tirar snapshot — abrir popup era o que disparava o diálogo de impressão
+  // sem baixar nada.
+  const container = document.createElement('div');
+  container.style.position = 'fixed';
+  container.style.left = '-10000px';
+  container.style.top = '0';
+  container.style.width = '210mm'; // largura A4 para o layout casar com @page
+  container.innerHTML = html;
+  document.body.appendChild(container);
+
+  // O template injeta <html><body> dentro; pegamos o page-wrapper real.
+  const target = container.querySelector('.page-wrapper') || container;
+
+  const nomeArquivo = `${sanitizarNomeArquivo(dados.cliente.nome)}_DECIFRA.pdf`;
+
+  try {
+    await html2pdf()
+      .set({
+        margin: [10, 10, 15, 10], // mm — bate com @page do template
+        filename: nomeArquivo,
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#FFFFFF',
+        },
+        jsPDF: {
+          unit: 'mm',
+          format: 'a4',
+          orientation: 'portrait',
+        },
+        pagebreak: { mode: ['css', 'legacy'], avoid: ['.fator-card', '.protocolo-card', '.interpretacao-card', '.faceta-item', '.exercicio-item'] },
+      })
+      .from(target as HTMLElement)
+      .save();
+  } finally {
+    document.body.removeChild(container);
   }
-  
-  printWindow.document.write(html);
-  printWindow.document.close();
-  
-  setTimeout(() => {
-    printWindow.focus();
-    printWindow.print();
-  }, 800);
 }
 
 async function gerarPDFMobile(html: string, dados: PDFData): Promise<void> {

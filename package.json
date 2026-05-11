@@ -50,6 +50,7 @@
     "expo-updates": "~29.0.16",
     "expo-web-browser": "~15.0.10",
     "express": "^5.0.1",
+    "html2pdf.js": "^0.14.0",
     "http-proxy-middleware": "^3.0.5",
     "lottie-react-native": "^6.5.1",
     "nodemailer": "^6.10.1",
