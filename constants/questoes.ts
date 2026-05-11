@@ -37,7 +37,7 @@ import { QUESTAO_FACETA_MAP, QUESTOES_INVERTIDAS } from './ipip';
     { id: 19, texto: 'Suspeito de intenções ocultas nas pessoas', invertida: true, faceta: 'A1' },
     { id: 20, texto: 'Faço as coisas de acordo com um plano', invertida: false, faceta: 'A2' },
     { id: 21, texto: 'Preocupo-me com os outros', invertida: false, faceta: 'A3' },
-    { id: 22, texto: 'Fico irritado(a) facilmente', invertida: true, faceta: 'A4' },
+    { id: 22, texto: 'Tenho um temperamento difícil', invertida: true, faceta: 'A4' },
     { id: 23, texto: 'Gosto de falar sobre mim', invertida: true, faceta: 'A5' },
     { id: 24, texto: 'Simpatizo com os sentimentos dos outros', invertida: false, faceta: 'A6' },
     
@@ -106,7 +106,7 @@ import { QUESTAO_FACETA_MAP, QUESTOES_INVERTIDAS } from './ipip';
     { id: 75, texto: 'Sinto as emoções dos outros', invertida: false, faceta: 'O3' },
     { id: 76, texto: 'Não gosto de mudanças', invertida: true, faceta: 'O4' },
     { id: 77, texto: 'Tenho uma mente investigativa', invertida: false, faceta: 'O5' },
-    { id: 78, texto: 'Acredito que existe exceções para tudo', invertida: false, faceta: 'O6' },
+    { id: 78, texto: 'Acredito que existem exceções para tudo', invertida: false, faceta: 'O6' },
     
     { id: 79, texto: 'Desconfio dos outros', invertida: true, faceta: 'A1' },
     { id: 80, texto: 'Sou honesto(a) na maioria das vezes', invertida: false, faceta: 'A2' },

@@ -7,7 +7,7 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
-import { FATORES } from '@/constants/ipip';
+import { FATORES, FACETAS } from '@/constants/ipip';
 import type { FatorKey } from '@/constants/ipip';
 import { getInterpretacao, type Faixa } from '@/constants/interpretacoes';
 import { PROTOCOLOS } from '@/constants/protocolos';
@@ -269,7 +269,7 @@ function gerarTemplateHTML(dados: PDFData): string {
               ${coluna1.map(f => `
                 <div class="faceta-item" style="background: ${COLORS.cardBackground}; padding: 10px 12px; border-radius: 8px; margin-bottom: 6px; border: 1px solid ${COLORS.border};">
                   <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-weight: 600; color: ${COLORS.textPrimary}; font-size: 12px; font-family: 'Urbanist', sans-serif;">${f.faceta}</span>
+                    <span style="font-weight: 600; color: ${COLORS.textPrimary}; font-size: 12px; font-family: 'Urbanist', sans-serif;">${f.faceta} - ${escapeHtml(FACETAS[f.faceta as keyof typeof FACETAS] ?? '')}</span>
                     <span style="text-align: right;">
                       <span style="font-weight: 700; color: ${COLORS.primary}; font-size: 13px; font-family: 'Urbanist', sans-serif;">${f.percentil}%</span>
                       <span style="font-size: 10px; color: ${COLORS.textMuted}; display: block; margin-top: 1px; font-family: 'Urbanist', sans-serif;">${f.classificacao}</span>
@@ -282,7 +282,7 @@ function gerarTemplateHTML(dados: PDFData): string {
               ${coluna2.map(f => `
                 <div class="faceta-item" style="background: ${COLORS.cardBackground}; padding: 10px 12px; border-radius: 8px; margin-bottom: 6px; border: 1px solid ${COLORS.border};">
                   <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-weight: 600; color: ${COLORS.textPrimary}; font-size: 12px; font-family: 'Urbanist', sans-serif;">${f.faceta}</span>
+                    <span style="font-weight: 600; color: ${COLORS.textPrimary}; font-size: 12px; font-family: 'Urbanist', sans-serif;">${f.faceta} - ${escapeHtml(FACETAS[f.faceta as keyof typeof FACETAS] ?? '')}</span>
                     <span style="text-align: right;">
                       <span style="font-weight: 700; color: ${COLORS.primary}; font-size: 13px; font-family: 'Urbanist', sans-serif;">${f.percentil}%</span>
                       <span style="font-size: 10px; color: ${COLORS.textMuted}; display: block; margin-top: 1px; font-family: 'Urbanist', sans-serif;">${f.classificacao}</span>
