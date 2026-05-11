@@ -18,6 +18,7 @@ import { useEffect, useState } from 'react';
   import { PROTOCOLOS } from '@/constants/protocolos';
   import { getInterpretacao, type Faixa } from '@/constants/interpretacoes';
   import { recomendarProtocolosCliente } from '@/utils/recomendacao';
+  import { classificarFator, classificarFaceta } from '@/utils/calculadora';
   import { COLORS } from '@/constants/colors';
   import { gerarPDF } from '@/utils/pdfGenerator';
   import { showAlert } from '@/utils/alert';
@@ -206,28 +207,23 @@ import { WebContent } from '@/components/WebContent';
 
     const scoresFatores = resultado.scores_fatores;
 
-    const classificarParaFaixa = (classificacao: string): Faixa => {
-      const normalized = classificacao.toLowerCase().trim();
-      if (normalized.includes('muito') && normalized.includes('baixo')) return 'Muito Baixo';
-      if (normalized.includes('baixo')) return 'Baixo';
-      if (normalized.includes('muito') && normalized.includes('alto')) return 'Muito Alto';
-      if (normalized.includes('alto')) return 'Alto';
-      return 'Médio';
-    };
-
-    // Gerar interpretação principal completa
+    // Recalcula classificação a partir do score bruto (algoritmo correto, fonte: curso da Isa).
+    // O campo `classificacao` salvo no banco vem de cálculo antigo baseado em percentil
+    // populacional — resultados pré-2026-05-10 estão com label errado (issue #26).
+    // Aqui ignoramos o cache do banco e usamos classificarFator/classificarFaceta como
+    // fonte da verdade.
     const scoresFatoresTipados: ScoreFator[] = scoresFatores.map(sf => ({
       fator: sf.fator,
       score: sf.score,
       percentil: sf.percentil,
-      classificacao: classificarParaFaixa(sf.classificacao) as ScoreFator['classificacao'],
+      classificacao: classificarFator(sf.score),
     }));
 
     const scoresFacetasTipados: ScoreFaceta[] = resultado.scores_facetas?.map((sf: any) => ({
       faceta: sf.faceta,
       score: sf.score,
       percentil: sf.percentil,
-      classificacao: classificarParaFaixa(sf.classificacao) as ScoreFaceta['classificacao'],
+      classificacao: classificarFaceta(sf.score),
     })) || [];
 
     const protocolosTipados: ProtocoloRecomendado[] = protocolos.map(p => ({

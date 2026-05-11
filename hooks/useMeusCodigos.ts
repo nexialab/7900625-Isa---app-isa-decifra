@@ -10,7 +10,10 @@ export interface CodigoDisponivel {
   validoAte: string;
   diasRestantes: number;
   emailEnviado?: string | null;
-  // Nota: coluna na DB chama-se `nome_aluna` (legado). Na UI usamos `nomeCliente`.
+  // Coluna `nome_aluna` existe em `codigos` (legado), mas a view
+  // `codigos_com_ultimo_email` usada abaixo não a mapeia — então hoje
+  // nomeCliente vem sempre `undefined` em runtime. Mantido no tipo pra
+  // compat e pra eventual extensão da view.
   nomeCliente?: string | null;
   dataEnvioEmail?: string | null;
 }
